@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=YOLO26 Demo Kiosk
+Comment=登入後以全螢幕開啟展示儀表板
+Exec=__APP_DIR__/deploy/kiosk.sh
+X-GNOME-Autostart-enabled=true

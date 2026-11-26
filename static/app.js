@@ -227,7 +227,9 @@ function render(d) {
   $("sysLine").textContent =
     `${sys.gpu_name || sys.device} · ${sys.half ? "FP16" : "FP32"} · CPU ${fmt(sys.cpu)}% · ` +
     `${t("temp")} ${fmt(sys.gpu_temp)}°C · ${t("camera")} #${sys.camera_index} ${(sys.camera_size || []).join("×")} · ` +
-    `${t("uptime")} ${Math.floor(up / 3600)}h${Math.floor(up / 60) % 60}m · ${statusText(sys.status)}`;
+    `${t("uptime")} ${Math.floor(up / 3600)}h${Math.floor(up / 60) % 60}m · ${statusText(sys.status)}` +
+    (Object.values(sys.model_files || {}).some((f) => f.endsWith(".engine")) ? " · TensorRT" : "") +
+    (sys.profile ? ` · ${sys.profile}` : "");
 }
 
 // ---------- 遊戲 ----------

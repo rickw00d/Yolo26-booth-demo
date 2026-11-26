@@ -13,6 +13,7 @@ import torch
 
 from . import render
 from .camera import Camera
+from .config import ROOT
 from .game import Game
 from .labels import label, norm_lang
 from .zhconv import convert
@@ -21,6 +22,7 @@ from .privacy import FaceBlur
 log = logging.getLogger("engine")
 
 MODES = ["detect", "segment", "pose", "multi", "openvocab"]
+TASKS = {"detect": "detect", "segment": "segment", "pose": "pose"}
 MODE_ZH = {"detect": "物件偵測", "segment": "實例分割", "pose": "人體姿態",
            "multi": "多模型同時運行", "openvocab": "開放詞彙(自由輸入)"}
 
@@ -90,6 +92,7 @@ class Engine:
         self._model_lock = threading.Lock()   # 載入 / 換類別 / 推論互斥
         self.vocab = list(DEFAULT_VOCAB)      # [(英文, 中文)]
         self.openvocab_model_name = None
+        self.model_files: dict[str, str] = {}   # 設定的權重 → 實際載入的檔案(.pt / .engine)
 
         self._jpeg = None
         self._raw = None
@@ -133,9 +136,10 @@ class Engine:
                 raise RuntimeError("開放詞彙模型都無法載入")
             self._apply_vocab(model)
         elif mode == "face":  # 人臉模糊專用的姿態模型(獨立實例,不干擾姿態模式的追蹤)
-            model = YOLO(self.cfg.get("privacy", {}).get("model", names["pose"]))
+            model = YOLO(self._weights(self.cfg.get("privacy", {}).get("model", names["pose"])),
+                         task="pose")
         else:
-            model = YOLO(names[mode])
+            model = YOLO(self._weights(names[mode]), task=TASKS[mode])
         # 暖機,避免第一次推論卡頓
         dummy = np.zeros((480, 640, 3), np.uint8)
         model.predict(dummy, device=self.device, **self._prec,
@@ -143,6 +147,17 @@ class Engine:
         self._models[mode] = model
         self.status = "running"
         return model
+
+    def _weights(self, name: str) -> str:
+        """tensorrt: true 且同名 .engine 存在時改用 TensorRT 引擎(先用 tools/export_trt.py 匯出)。"""
+        if self.cfg.get("tensorrt") and name.endswith(".pt"):
+            engine = ROOT / (name[:-3] + ".engine")
+            if engine.exists():
+                self.model_files[name] = engine.name
+                return str(engine)
+            log.warning("找不到 %s,改用 %s(請在本機執行 tools/export_trt.py)", engine.name, name)
+        self.model_files[name] = name
+        return name
 
     def _apply_vocab(self, model):
         en = [e for e, _ in self.vocab]
@@ -387,6 +402,8 @@ class Engine:
             "camera_index": self.camera.index,
             "camera_size": self.camera.actual_size,
             "loaded_models": list(self._models.keys()),
+            "model_files": self.model_files,
+            "profile": self.cfg.get("_profile"),
             "openvocab_model": self.openvocab_model_name,
             "status": self.status,
             "uptime_s": int(time.time() - self.started_at),

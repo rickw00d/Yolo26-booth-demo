@@ -1,0 +1,7 @@
+# Linux 腳本必須是 LF,否則 bash 會出現 $'\r': command not found
+*.sh       text eol=lf
+*.service  text eol=lf
+*.desktop  text eol=lf
+Dockerfile text eol=lf
+# Windows 批次檔維持 CRLF
+*.bat      text eol=crlf

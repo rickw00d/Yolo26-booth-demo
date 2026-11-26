@@ -1,0 +1,37 @@
+# NVIDIA GB10(DGX Spark / MSI EdgeXpert 等)平台設定
+# 只寫和 config.yaml 不同的欄位,啟動時會疊加上去:
+#   ./start_demo.sh                       (預設就用這份)
+#   python run.py --profile config.gb10.yaml
+#
+# 標「未確認」的項目還沒在 GB10 實機上測過,到現場請先跑 tools/check_env.py。
+
+camera:
+  backend: v4l2        # Linux 用 V4L2;index 也可以寫成 /dev/video0
+  index: 0
+  width: 1280          # USB 鏡頭若支援 1080p MJPG,可改 1920×1080(未確認)
+  height: 720
+
+# 記憶體 128GB,換成最大的 x 版本並在啟動時全部載入
+models:
+  detect: yolo26x.pt
+  segment: yolo26x-seg.pt
+  pose: yolo26x-pose.pt
+  openvocab: yoloe-26l-seg.pt          # 開放詞彙要能隨時換類別,維持 .pt,不轉 TensorRT
+  openvocab_fallback: yoloe-11l-seg.pt
+preload: true
+
+# 先執行 tools/export_trt.py 產生 .engine;找不到 .engine 時會自動退回 .pt
+tensorrt: true
+
+privacy:
+  model: yolo26s-pose.pt   # GPU 夠快,用較準的 s 版找臉
+  every_n: 1               # 每個影格都偵測人臉
+
+ollama:
+  # 記憶體夠大,翻譯改用獨立的小模型,不必和 VLM 共用
+  vlm_model: ornith-1.5:9b     # 筆電實測最準;GB10 可再試更大的視覺模型(效果未確認)
+  llm_model: qwen3.5:2b
+  keep_alive: 24h              # 展場一整天都不卸載模型
+
+ui:
+  device_label: "NVIDIA GB10"

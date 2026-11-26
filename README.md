@@ -62,6 +62,9 @@ Inference and rendering run in separate threads, so the GPU never waits for the 
 | File | Purpose |
 |---|---|
 | `config.yaml` | All tunable settings |
+| `config.gb10.yaml` | GB10 profile (merged on top of config.yaml) |
+| `tools/` | Environment check, model prefetch, TensorRT export |
+| `setup_gb10.sh` / `start_demo.sh` / `deploy/` / `docker/` | Linux setup, start, autostart, Docker fallback |
 | `app/camera.py` | Threaded capture with auto-reconnect |
 | `app/engine.py` | Model management, inference, render pipeline, stats, CPU/GPU benchmark |
 | `app/privacy.py` | Face blur |
@@ -95,22 +98,38 @@ Known limitations:
 
 ## Porting to GB10
 
-GB10 is ARM64 and runs DGX OS (Ubuntu). The code is cross-platform; the main differences are in environment setup.
+GB10 (DGX Spark, MSI EdgeXpert, etc.) is ARM64 and runs DGX OS (Ubuntu). The code is cross-platform. Everything that differs lives in [config.gb10.yaml](config.gb10.yaml), which lists only the fields that differ from `config.yaml` and is merged on top at startup, and in the setup scripts.
 
-1. **PyTorch**: use the NVIDIA NGC PyTorch container, or an aarch64 CUDA 13 wheel. The exact version pairing is **unverified**, so check NVIDIA's official documentation.
-2. **Edit `config.yaml`**:
-   ```yaml
-   camera: { backend: v4l2, index: 0 }
-   models: { detect: yolo26x.pt, segment: yolo26x-seg.pt, pose: yolo26x-pose.pt, openvocab: yoloe-26l-seg.pt }
-   preload: true
-   privacy: { model: yolo26s-pose.pt, every_n: 1 }
-   ollama: { vlm_model: <larger VLM>, llm_model: <separate LLM> }
-   ui: { device_label: "NVIDIA GB10" }
-   ```
-3. **TensorRT (optional)**: run `yolo export model=yolo26x.pt format=engine half=True`, then point the model paths to the `.engine` files.
-4. **CJK font**: run `sudo apt install fonts-noto-cjk`. Traditional labels use the TC face and Simplified labels use the SC face.
-5. **Memory tile**: when `nvidia-smi` reports N/A, the dashboard shows unified memory instead.
-6. **Autostart**: run `python run.py` from a systemd service, with Chromium `--kiosk http://localhost:8000`.
+### Steps
+
+```bash
+git clone https://github.com/rickw00d/Yolo26-booth-demo.git && cd Yolo26-booth-demo
+./setup_gb10.sh                                              # apt packages, venv, PyTorch cu130, model download, env check
+.venv/bin/python tools/export_trt.py --profile config.gb10.yaml   # TensorRT export (must run on the GB10 itself)
+./start_demo.sh                                              # start, then open http://localhost:8000
+./deploy/install_autostart.sh                                # optional: start on boot + fullscreen kiosk browser
+```
+
+- **Ollama**: install it first by following the [official instructions](https://ollama.com/download/linux). If `ornith-1.5:9b` is not in the online Ollama library, export it from the laptop and import it on the GB10 (unverified).
+- **Environment check**: `tools/check_env.py` runs a real GPU workload, measures camera FPS, and checks fonts, Ollama models and weight files. It then lists anything that needs fixing.
+- **Docker fallback**: if the native PyTorch or TensorRT install gives trouble, use `./docker/run_docker.sh`. It uses the official Ultralytics ARM64 image, which includes TensorRT.
+
+### GB10 vs laptop settings
+
+| Item | Laptop | GB10 |
+|---|---|---|
+| YOLO models | s size, loaded on demand | x size, all preloaded |
+| Inference engine | PyTorch FP16 | TensorRT FP16 (falls back to `.pt` if no `.engine`) |
+| Face blur | nano model, every 2nd frame | s model, every frame |
+| Translation model | Shares the VLM (not enough VRAM) | Separate qwen3.5:2b |
+| Camera backend | MSMF | V4L2 |
+
+### Known risks (not yet verified on GB10 hardware)
+
+- The PyTorch cu130 aarch64 wheels work according to community reports and the Ultralytics docs. The Ultralytics docs also warn that pip builds may not be fully optimized; if anything breaks, switch to Docker.
+- Open vocabulary (YOLOE) has to change classes at any time, so it is not converted to TensorRT and runs slower than the other modes.
+- On unified memory, `nvidia-smi` may report memory as N/A. The dashboard then shows system memory instead.
+- Reference: [Ultralytics DGX Spark guide](https://docs.ultralytics.com/guides/nvidia-dgx-spark)
 
 ## Pre-show checklist
 

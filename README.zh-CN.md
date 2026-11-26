@@ -62,6 +62,9 @@ python -m venv .venv
 | 文件 | 用途 |
 |---|---|
 | `config.yaml` | 所有可调参数 |
+| `config.gb10.yaml` | GB10 平台配置(叠加在 config.yaml 上) |
+| `tools/` | 环境检查、预先下载模型、TensorRT 导出 |
+| `setup_gb10.sh` / `start_demo.sh` / `deploy/` / `docker/` | Linux 安装、启动、开机自启、Docker 备选方案 |
 | `app/camera.py` | 多线程读取,断线自动重连 |
 | `app/engine.py` | 模型管理、推理、绘图管线、统计、CPU/GPU 对比 |
 | `app/privacy.py` | 人脸模糊 |
@@ -95,22 +98,38 @@ python -m venv .venv
 
 ## 移植到 GB10
 
-GB10 是 ARM64 架构,操作系统是 DGX OS(Ubuntu)。程序本身跨平台,主要差异在环境安装。
+GB10(DGX Spark、MSI EdgeXpert 等)是 ARM64 架构,操作系统是 DGX OS(Ubuntu)。程序本身跨平台,差异都集中在 [config.gb10.yaml](config.gb10.yaml)(只写跟 `config.yaml` 不同的字段,启动时叠加上去)和安装脚本。
 
-1. **PyTorch**:建议使用 NVIDIA NGC 的 PyTorch 容器,或 aarch64 加 CUDA 13 的 wheel。版本对应**未确认**,请以 NVIDIA 官方文档为准。
-2. **修改 `config.yaml`**:
-   ```yaml
-   camera: { backend: v4l2, index: 0 }
-   models: { detect: yolo26x.pt, segment: yolo26x-seg.pt, pose: yolo26x-pose.pt, openvocab: yoloe-26l-seg.pt }
-   preload: true
-   privacy: { model: yolo26s-pose.pt, every_n: 1 }
-   ollama: { vlm_model: <更大的 VLM>, llm_model: <独立的 LLM> }
-   ui: { device_label: "NVIDIA GB10" }
-   ```
-3. **TensorRT(可选)**:`yolo export model=yolo26x.pt format=engine half=True`,再把模型路径改成 `.engine`。
-4. **中文字体**:`sudo apt install fonts-noto-cjk`。繁体标签使用 TC 字形,简体标签使用 SC 字形。
-5. **内存显示**:`nvidia-smi` 返回 N/A 时,仪表盘会自动改为显示统一内存。
-6. **开机自动启动**:用 systemd 运行 `python run.py`,搭配 Chromium `--kiosk http://localhost:8000`。
+### 步骤
+
+```bash
+git clone https://github.com/rickw00d/Yolo26-booth-demo.git && cd Yolo26-booth-demo
+./setup_gb10.sh                                              # 系统包、venv、PyTorch cu130、模型下载、环境检查
+.venv/bin/python tools/export_trt.py --profile config.gb10.yaml   # 导出 TensorRT(必须在 GB10 本机执行)
+./start_demo.sh                                              # 启动,浏览器打开 http://localhost:8000
+./deploy/install_autostart.sh                                # 可选:开机自启 + 全屏浏览器
+```
+
+- **Ollama**:需要先按[官方说明](https://ollama.com/download/linux)安装。`ornith-1.5:9b` 如果不在 Ollama 在线模型库,要从笔记本导出后再导入(未确认)。
+- **环境检查**:`tools/check_env.py` 会实际跑 GPU 运算、测摄像头 FPS、检查字体、Ollama 模型和权重文件,并列出需要处理的项目。
+- **Docker 备选方案**:原生安装 PyTorch 或 TensorRT 有问题时,改用 `./docker/run_docker.sh`(Ultralytics 官方 ARM64 镜像,内含 TensorRT)。
+
+### GB10 配置与笔记本的差异
+
+| 项目 | 笔记本 | GB10 |
+|---|---|---|
+| YOLO 模型 | s 版,用到才加载 | x 版,启动时全部加载 |
+| 推理引擎 | PyTorch FP16 | TensorRT FP16(找不到 `.engine` 自动回退到 `.pt`) |
+| 人脸模糊 | nano 模型,每 2 帧检测一次 | s 模型,每帧都检测 |
+| 翻译模型 | 共用 VLM(显存不够) | 独立的 qwen3.5:2b |
+| 摄像头后端 | MSMF | V4L2 |
+
+### 已知风险(未在 GB10 实机验证)
+
+- PyTorch cu130 aarch64 wheel 根据社区与 Ultralytics 文档可用;Ultralytics 文档也提醒 pip 版可能未完全优化,有问题就改用 Docker。
+- 开放词汇(YOLOE)要能随时换类别,不转 TensorRT,速度会比其他模式慢。
+- `nvidia-smi` 的内存在统一内存架构下可能是 N/A,仪表盘会自动改为显示系统内存。
+- 参考:[Ultralytics DGX Spark 指南](https://docs.ultralytics.com/guides/nvidia-dgx-spark)
 
 ## 展前检查清单
 
