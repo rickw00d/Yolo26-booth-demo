@@ -112,12 +112,14 @@ def check_cameras(cfg):
         for line in out.strip().splitlines():
             print(f"      {line}")
     cam_cfg = dict(cfg["camera"])
+    source = cam_cfg.get("stream")
+    if source:
+        check_stream(cam_cfg, source)
     want = cam_cfg.get("index", 0)
     found_want = False
     for idx in range(0, 6):
-        cam_cfg["index"] = idx
         cam = Camera(cam_cfg)
-        cap = cam._open()
+        cap = cam._open_device(idx)
         if cap is None:
             continue
         n, t = 0, time.perf_counter()
@@ -132,6 +134,31 @@ def check_cameras(cfg):
                + ("" if fps >= 20 else ";幀率偏低,檢查 MJPG 支援、USB 3 埠或光線"))
     if isinstance(want, int) and not found_want:
         report(FAIL, "設定的攝影機", f"camera.index = {want} 打不開")
+
+
+def check_stream(cam_cfg, source):
+    """camera.stream 有設定時:解析網址(YouTube 用 yt-dlp)並實際讀幾秒影格。"""
+    import cv2
+    from app.camera import Camera, _redact
+    cam = Camera(cam_cfg)
+    url = cam._resolve(str(source))
+    cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG,
+                           [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 15000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 15000])
+    if not cap.isOpened():
+        report(FAIL, "串流來源", f"{_redact(str(source))} 打不開;檢查網址、網路,YouTube 需要 yt-dlp")
+        return
+    n, size, t = 0, None, time.perf_counter()
+    while time.perf_counter() - t < 3:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        n += 1
+        size = frame.shape[1::-1]
+    cap.release()
+    if not n:
+        report(FAIL, "串流來源", f"{_redact(str(source))} 開得起來但讀不到影格")
+        return
+    report(OK, "串流來源(按 C 切換)", f"{_redact(str(source))},{size[0]}×{size[1]},3 秒讀到 {n} 張影格")
 
 
 def check_ollama(cfg):

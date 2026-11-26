@@ -10,3 +10,4 @@ psutil
 pillow
 lap>=0.5.12
 opencc-python-reimplemented   # 簡轉繁(純 Python,Windows / ARM64 都能裝)
+yt-dlp                        # 串流來源:解析 YouTube / 內嵌影片網址(用 USB 攝影機時用不到)

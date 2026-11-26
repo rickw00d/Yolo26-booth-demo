@@ -11,7 +11,8 @@ const I18N = {
     platform: "運算平台", multiPill: "2 個模型同時運行", privacyPill: "🛡 人臉已模糊",
     sec: "秒", gameTitle: "把這些東西拿到鏡頭前!", gameOver: "挑戰結束!", pts: "分",
     playAgain: "按 G 再玩一次", idleBig: "走近一點,讓 AI 認識你 👋",
-    idleSub: "即時辨識 80 種物品 · 人體姿態 · 用中文跟 AI 對話", camWarn: "攝影機連線中…",
+    idleSub: "即時辨識 80 種物品 · 人體姿態 · 用中文跟 AI 對話", camWarn: "攝影機連線中…", camWarnStream: "串流連線中…",
+    source: "影像來源", srcCam: "攝影機", srcStream: "直播串流",
     latency: "推論延遲 ms", gpuUtil: "GPU 使用率", gpuMem: "GPU 記憶體", uniMem: "統一記憶體",
     faceBlur: "人臉模糊", on: "開啟", off: "關閉", faces: "張臉",
     uniquePeople: "累計辨識人次", uniqueTotal: "累計辨識物件", noObjects: "畫面中尚未偵測到物件",
@@ -39,7 +40,8 @@ const I18N = {
     platform: "运算平台", multiPill: "2 个模型同时运行", privacyPill: "🛡 人脸已模糊",
     sec: "秒", gameTitle: "把这些东西拿到镜头前!", gameOver: "挑战结束!", pts: "分",
     playAgain: "按 G 再玩一次", idleBig: "走近一点,让 AI 认识你 👋",
-    idleSub: "实时识别 80 种物品 · 人体姿态 · 用中文跟 AI 对话", camWarn: "摄像头连接中…",
+    idleSub: "实时识别 80 种物品 · 人体姿态 · 用中文跟 AI 对话", camWarn: "摄像头连接中…", camWarnStream: "视频流连接中…",
+    source: "视频来源", srcCam: "摄像头", srcStream: "直播视频流",
     latency: "推理延迟 ms", gpuUtil: "GPU 使用率", gpuMem: "显存", uniMem: "统一内存",
     faceBlur: "人脸模糊", on: "开启", off: "关闭", faces: "张脸",
     uniquePeople: "累计识别人次", uniqueTotal: "累计识别物体", noObjects: "画面中尚未检测到物体",
@@ -67,7 +69,8 @@ const I18N = {
     platform: "Running on", multiPill: "2 models running together", privacyPill: "🛡 Faces blurred",
     sec: "s", gameTitle: "Show these items to the camera!", gameOver: "Time's up!", pts: "pts",
     playAgain: "Press G to play again", idleBig: "Step closer and meet the AI 👋",
-    idleSub: "80 object classes · Human pose · Talk to the AI", camWarn: "Connecting camera…",
+    idleSub: "80 object classes · Human pose · Talk to the AI", camWarn: "Connecting camera…", camWarnStream: "Connecting stream…",
+    source: "Source", srcCam: "Camera", srcStream: "Live stream",
     latency: "Inference ms", gpuUtil: "GPU load", gpuMem: "GPU memory", uniMem: "Unified memory",
     faceBlur: "Face blur", on: "On", off: "Off", faces: "faces",
     uniquePeople: "People seen", uniqueTotal: "Objects seen", noObjects: "No objects detected yet",
@@ -217,6 +220,11 @@ function render(d) {
     : `<span class="dim">${t("noObjects")}</span>`;
 
   $("camWarn").classList.toggle("hidden", sys.camera_ok !== false);
+  $("camWarn").textContent = t(sys.camera_is_stream ? "camWarnStream" : "camWarn");
+  $("sourceBtn").classList.toggle("hidden", !sys.stream_available && !sys.camera_is_stream);
+  $("sourceBtn").classList.toggle("on", !!sys.camera_is_stream);
+  $("sourceState").textContent = sys.camera_is_stream
+    ? `${t("srcStream")} (${sys.camera_label})` : `${t("srcCam")} ${sys.camera_label ?? ""}`;
   const g = d.game || {};
   $("idleOverlay").classList.toggle("hidden", g.active || (sys.idle_s ?? 0) < idleSeconds);
   renderGame(g);
@@ -226,7 +234,7 @@ function render(d) {
   const up = sys.uptime_s || 0;
   $("sysLine").textContent =
     `${sys.gpu_name || sys.device} · ${sys.half ? "FP16" : "FP32"} · CPU ${fmt(sys.cpu)}% · ` +
-    `${t("temp")} ${fmt(sys.gpu_temp)}°C · ${t("camera")} #${sys.camera_index} ${(sys.camera_size || []).join("×")} · ` +
+    `${t("temp")} ${fmt(sys.gpu_temp)}°C · ${t("camera")} ${sys.camera_label ?? "#" + sys.camera_index} ${(sys.camera_size || []).join("×")} · ` +
     `${t("uptime")} ${Math.floor(up / 3600)}h${Math.floor(up / 60) % 60}m · ${statusText(sys.status)}` +
     (Object.values(sys.model_files || {}).some((f) => f.endsWith(".engine")) ? " · TensorRT" : "") +
     (sys.profile ? ` · ${sys.profile}` : "");
@@ -334,6 +342,7 @@ async function ask(question) {
 
 // ---------- 事件 ----------
 const togglePrivacy = () => post("/api/privacy", { face_blur: !faceBlur });
+const toggleSource = () => post("/api/camera/toggle");   // 攝影機 ⇄ 串流
 document.querySelectorAll(".tabs button").forEach((b) => {
   b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("active", x === b));
@@ -350,6 +359,7 @@ $("vocabForm").onsubmit = submitVocab;
 $("gameForm").onsubmit = (e) => { e.preventDefault(); startGame(); };
 $("benchBtn").onclick = () => post("/api/benchmark");
 $("privacyBtn").onclick = togglePrivacy;
+$("sourceBtn").onclick = toggleSource;
 const nextLang = () => LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
 document.querySelectorAll("#langBtn span").forEach((s) => {
   s.onclick = (e) => { e.stopPropagation(); setLang(s.dataset.l); };
@@ -366,6 +376,7 @@ document.addEventListener("keydown", (e) => {
   else if (k === "d") ask(t("q1"));
   else if (k === "h") document.body.classList.toggle("kiosk");
   else if (k === "p") togglePrivacy();
+  else if (k === "c") toggleSource();
   else if (k === "l") setLang(nextLang());   // 繁 → 简 → EN 循環
   else if (k === "s") window.open("/api/snapshot");
   else if (k === "f") {

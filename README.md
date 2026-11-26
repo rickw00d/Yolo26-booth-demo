@@ -18,6 +18,7 @@ It was developed on a Windows laptop (RTX 4060 8GB) and has been ported to and t
 | Item challenge | Show 5 requested items to the camera within 30 s, with score and leaderboard | `G` |
 | CPU vs GPU | Runs the same frame on CPU and on GPU | `B` |
 | Face blur | Pixelates every face, including people far away or facing away | `P` |
+| Camera / stream | Switches between the USB camera and a live stream (e.g. a YouTube live cam) | `C` |
 | Language toggle | Traditional Chinese / Simplified Chinese / English. Switches the UI, the on-video labels and the AI answer language together | `L` |
 | Idle attract screen | Shows a greeting when nobody has been seen for a while | auto |
 | Hide panel / Fullscreen / Snapshot | Snapshots are saved to `snapshots/` | `H` / `F` / `S` |
@@ -37,8 +38,29 @@ Then open <http://localhost:8000> and press `F` for fullscreen.
 At the booth, run `start_demo.bat` instead. It restarts the app automatically if it crashes.
 
 - YOLO weights download on first use. **Before the show, switch through all five modes once while online.**
-- To change the camera, edit `camera.index` in `config.yaml`.
+- To change the camera, edit `camera.index` in `config.yaml`. To use a stream or video file instead, see [Streams and video files](#streams-and-video-files).
 - To change the default language, edit `ui.language` in `config.yaml` (`zh-TW`, `zh-CN` or `en`).
+
+## Streams and video files
+
+Besides the USB camera, the video can come from a network stream or a video file. Set `camera.stream` in `config.yaml`, then press `C` or click the **Source** button in the side panel to switch between the camera (`camera.index`) and the stream. The button is hidden when `camera.stream` is empty. Set `start_with_stream: true` to show the stream at startup.
+
+| Source | Example |
+|---|---|
+| IP camera (RTSP, over TCP) | `rtsp://user:pass@192.168.1.10:554/stream1` |
+| YouTube live, or a page that embeds one (resolved with yt-dlp) | `https://www.youtube.com/watch?v=…`, `https://guideme24.com/products/e369` |
+| Direct media URL | `https://…/live.m3u8`, `http://…/video.mjpg` |
+| Local video file (loops) | `videos/booth_loop.mp4` |
+
+The default `camera.stream` is the Times Square live cam. Switching takes about 2 s to the stream and about 6.5 s back to the camera (the USB camera itself is slow to open), with a "Connecting…" notice in between.
+
+API: `POST /api/camera/toggle` does the same as `C`. `POST /api/camera` with `{"index": "<url or file>"}` switches to any source, and `{"index": 0}` goes back to the camera.
+
+- YouTube sends live video in chunks every few seconds, so streams are buffered for `stream_buffer_s` (6 s) and then played at a steady frame rate. Tested on GB10 with the Times Square stream above: 30 fps for 60 s with no stalls, and the full app ran at ~33 FPS.
+- Streams are not mirrored (`stream_mirror: false`). Passwords and tokens in the URL are hidden from logs and the dashboard.
+- A stream needs internet, so the booth is no longer offline-only. yt-dlp depends on YouTube's site and can break without notice; keep the USB camera as a fallback.
+- **Rights**: check that you are allowed to show the stream publicly. YouTube's terms limit access outside their player, and a booth screen is a public display. Your own IP camera avoids both issues.
+- The item challenge and Ask AI are designed for visitors in front of the camera, so they make less sense on a street view. People in a wide shot are small; raise `imgsz` (e.g. 1280) for better detection.
 
 ## Face blur
 
@@ -65,7 +87,7 @@ Inference and rendering run in separate threads, so the GPU never waits for the 
 | `config.gb10.yaml` | GB10 profile (merged on top of config.yaml) |
 | `tools/` | Environment check, model prefetch, TensorRT export |
 | `setup_gb10.sh` / `start_demo.sh` / `deploy/` / `docker/` | Linux setup, start, autostart, Docker fallback |
-| `app/camera.py` | Threaded capture with auto-reconnect |
+| `app/camera.py` | Threaded capture (USB camera, stream or video file) with auto-reconnect and stream buffering |
 | `app/engine.py` | Model management, inference, render pipeline, stats, CPU/GPU benchmark |
 | `app/privacy.py` | Face blur |
 | `app/render.py` | Neon corner boxes, masks, skeletons, trails, CJK text |

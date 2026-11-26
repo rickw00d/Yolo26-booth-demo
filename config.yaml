@@ -8,6 +8,16 @@ camera:
   fps: 30
   backend: auto       # auto(Windows=msmf、Linux=v4l2) | dshow | msmf | v4l2 | gstreamer
   mirror: true        # 鏡像顯示,來賓面對鏡頭比較直覺
+  # 串流來源:按 C 或畫面上的「影像來源」按鈕,在上面的攝影機和這個串流之間切換。
+  # 留空 = 不顯示切換按鈕。串流需要網路,也請先確認有公開播放的授權。
+  #   rtsp://帳號:密碼@192.168.1.10:554/stream1        IP 攝影機
+  #   https://www.youtube.com/watch?v=影片ID           YouTube 直播(用 yt-dlp 解析)
+  #   https://guideme24.com/products/e369              內嵌 YouTube 的網頁也可以
+  #   videos/booth_loop.mp4                            本機影片,播完自動重播
+  stream: "https://guideme24.com/products/e369"   # 美國時代廣場直播
+  start_with_stream: false   # true = 啟動時先顯示串流
+  stream_buffer_s: 6  # 直播緩衝秒數;YouTube 每隔數秒才送一段,緩衝不足畫面會卡住
+  stream_mirror: false   # 串流畫面通常不需要鏡像
 
 device: auto          # auto | cuda | cpu
 half: true            # GPU 上使用 FP16

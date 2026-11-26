@@ -18,6 +18,7 @@
 | 物品挑战 | 30 秒内把指定的 5 样物品拿到镜头前,有计分和排行榜 | `G` |
 | 性能对比 | 同一张画面分别用 CPU 和 GPU 推理 | `B` |
 | 人脸模糊 | 对所有人脸打马赛克,包含远处和背对镜头的人 | `P` |
+| 摄像头 / 视频流 | 在 USB 摄像头和直播视频流(例如 YouTube 直播)之间切换 | `C` |
 | 语言切换 | 繁体中文/简体中文/英文;界面、画面上的标签、AI 回答语言一起切换 | `L` |
 | 待机吸引画面 | 一段时间没检测到人就显示招呼字幕 | 自动 |
 | 隐藏侧栏 / 全屏 / 截图 | 截图会保存到 `snapshots/` | `H` / `F` / `S` |
@@ -37,8 +38,29 @@ python -m venv .venv
 展会现场使用时改运行 `start_demo.bat`,程序崩溃会自动重启。
 
 - 第一次运行会自动下载 YOLO 模型。**展前请在有网络的环境把五种模式都切过一次。**
-- 换摄像头:修改 `config.yaml` 的 `camera.index`。
+- 换摄像头:修改 `config.yaml` 的 `camera.index`。改用串流或视频文件请见[串流与视频文件](#串流与视频文件)。
 - 默认语言:修改 `config.yaml` 的 `ui.language`(`zh-TW`、`zh-CN` 或 `en`)。
+
+## 串流与视频文件
+
+视频来源除了 USB 摄像头,也可以是网络串流或视频文件。在 `config.yaml` 设置 `camera.stream`,然后按 `C` 或点击侧边栏的“视频来源”按钮,就能在摄像头(`camera.index`)和视频流之间切换。`camera.stream` 留空时不显示按钮;设置 `start_with_stream: true` 则启动时先显示视频流。
+
+| 来源 | 示例 |
+|---|---|
+| IP 摄像头(RTSP,走 TCP) | `rtsp://用户名:密码@192.168.1.10:554/stream1` |
+| YouTube 直播,或内嵌 YouTube 的网页(用 yt-dlp 解析) | `https://www.youtube.com/watch?v=…`、`https://guideme24.com/products/e369` |
+| 直接的媒体网址 | `https://…/live.m3u8`、`http://…/video.mjpg` |
+| 本地视频文件(循环播放) | `videos/booth_loop.mp4` |
+
+`camera.stream` 默认是时代广场直播。切到视频流约 2 秒、切回摄像头约 6.5 秒(USB 摄像头本身打开较慢),中间会显示“连接中…”。
+
+API:`POST /api/camera/toggle` 等同按 `C`。`POST /api/camera` 内容 `{"index": "<网址或文件>"}` 可切到任何来源,`{"index": 0}` 切回摄像头。
+
+- YouTube 直播每隔几秒才送一段视频,所以串流会先缓冲 `stream_buffer_s`(6 秒)再以固定速率播放。已在 GB10 上用上面的时代广场直播测试:连续 60 秒保持 30 fps、没有卡顿,整个程序约 33 FPS。
+- 串流不做镜像(`stream_mirror: false`)。网址中的用户名、密码与 token 不会出现在日志和仪表盘上。
+- 串流需要网络,展位就不再是完全离线。yt-dlp 依赖 YouTube 网站,可能无预警失效,请保留 USB 摄像头作为备用。
+- **播放授权**:请先确认可以公开播放该串流。YouTube 条款限制在官方播放器以外访问,展位屏幕也算公开播放。用自己的 IP 摄像头就没有这两个问题。
+- 物品挑战和问 AI 是为站在镜头前的来宾设计的,用在街景不太合适。远景中的人很小,可把 `imgsz` 调高(例如 1280)提升检测。
 
 ## 人脸模糊
 
@@ -65,7 +87,7 @@ python -m venv .venv
 | `config.gb10.yaml` | GB10 平台配置(叠加在 config.yaml 上) |
 | `tools/` | 环境检查、预先下载模型、TensorRT 导出 |
 | `setup_gb10.sh` / `start_demo.sh` / `deploy/` / `docker/` | Linux 安装、启动、开机自启、Docker 备选方案 |
-| `app/camera.py` | 多线程读取,断线自动重连 |
+| `app/camera.py` | 多线程读取(USB 摄像头、串流或视频文件),断线自动重连、串流缓冲 |
 | `app/engine.py` | 模型管理、推理、绘图管线、统计、CPU/GPU 对比 |
 | `app/privacy.py` | 人脸模糊 |
 | `app/render.py` | 霓虹角框、遮罩、骨架、轨迹、中文字 |

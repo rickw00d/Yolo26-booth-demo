@@ -18,6 +18,7 @@
 | 物品挑戰 | 30 秒內把指定的 5 樣物品拿到鏡頭前,有計分和排行榜 | `G` |
 | 效能對比 | 同一張畫面分別用 CPU 和 GPU 推論 | `B` |
 | 人臉模糊 | 對所有人臉打馬賽克,包含遠處和背對鏡頭的人 | `P` |
+| 攝影機 / 串流 | 在 USB 攝影機和直播串流(例如 YouTube 直播)之間切換 | `C` |
 | 語言切換 | 繁體中文/簡體中文/英文;介面、影像上的標籤、AI 回答語言一起切換 | `L` |
 | 待機吸引畫面 | 一段時間沒偵測到人就顯示招呼字幕 | 自動 |
 | 隱藏側欄 / 全螢幕 / 截圖 | 截圖會存到 `snapshots/` | `H` / `F` / `S` |
@@ -37,8 +38,29 @@ python -m venv .venv
 展場使用時改執行 `start_demo.bat`,程式當掉會自動重啟。
 
 - 第一次執行會自動下載 YOLO 模型。**展前請在有網路的環境把五種模式都切過一次。**
-- 換攝影機:修改 `config.yaml` 的 `camera.index`。
+- 換攝影機:修改 `config.yaml` 的 `camera.index`。改用串流或影片檔請見[串流與影片檔](#串流與影片檔)。
 - 預設語言:修改 `config.yaml` 的 `ui.language`(`zh-TW`、`zh-CN` 或 `en`)。
+
+## 串流與影片檔
+
+影像來源除了 USB 攝影機,也可以是網路串流或影片檔。在 `config.yaml` 設定 `camera.stream`,然後按 `C` 或點側邊欄的「影像來源」按鈕,就能在攝影機(`camera.index`)和串流之間切換。`camera.stream` 留空時不顯示按鈕;設定 `start_with_stream: true` 則啟動時先顯示串流。
+
+| 來源 | 範例 |
+|---|---|
+| IP 攝影機(RTSP,走 TCP) | `rtsp://帳號:密碼@192.168.1.10:554/stream1` |
+| YouTube 直播,或內嵌 YouTube 的網頁(用 yt-dlp 解析) | `https://www.youtube.com/watch?v=…`、`https://guideme24.com/products/e369` |
+| 直接的媒體網址 | `https://…/live.m3u8`、`http://…/video.mjpg` |
+| 本機影片檔(循環播放) | `videos/booth_loop.mp4` |
+
+`camera.stream` 預設是時代廣場直播。切到串流約 2 秒、切回攝影機約 6.5 秒(USB 攝影機本身開啟較慢),中間會顯示「連線中…」。
+
+API:`POST /api/camera/toggle` 等同按 `C`。`POST /api/camera` 內容 `{"index": "<網址或檔案>"}` 可切到任何來源,`{"index": 0}` 切回攝影機。
+
+- YouTube 直播每隔幾秒才送一段影像,所以串流會先緩衝 `stream_buffer_s`(6 秒)再以固定速率播放。已在 GB10 上用上面的時代廣場直播測試:連續 60 秒維持 30 fps、沒有卡頓,整個程式約 33 FPS。
+- 串流不做鏡像(`stream_mirror: false`)。網址中的帳號密碼與 token 不會出現在日誌和儀表板上。
+- 串流需要網路,展場就不再是完全離線。yt-dlp 依賴 YouTube 網站,可能無預警失效,請保留 USB 攝影機當備案。
+- **播放授權**:請先確認可以公開播放該串流。YouTube 條款限制在官方播放器以外存取,展場螢幕也算公開播放。用自己的 IP 攝影機就沒有這兩個問題。
+- 物品挑戰和問 AI 是設計給站在鏡頭前的來賓,用在街景比較不適合。遠景中的人很小,可把 `imgsz` 調高(例如 1280)提升偵測。
 
 ## 人臉模糊
 
@@ -65,7 +87,7 @@ python -m venv .venv
 | `config.gb10.yaml` | GB10 平台設定(疊加在 config.yaml 上) |
 | `tools/` | 環境檢查、預先下載模型、TensorRT 匯出 |
 | `setup_gb10.sh` / `start_demo.sh` / `deploy/` / `docker/` | Linux 安裝、啟動、開機自動啟動、Docker 備案 |
-| `app/camera.py` | 執行緒化讀取,斷線自動重連 |
+| `app/camera.py` | 執行緒化讀取(USB 攝影機、串流或影片檔),斷線自動重連、串流緩衝 |
 | `app/engine.py` | 模型管理、推論、繪圖管線、統計、CPU/GPU 對比 |
 | `app/privacy.py` | 人臉模糊 |
 | `app/render.py` | 霓虹角框、遮罩、骨架、軌跡、中文字 |

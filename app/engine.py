@@ -12,7 +12,7 @@ import psutil
 import torch
 
 from . import render
-from .camera import Camera
+from .camera import Camera, is_stream
 from .config import ROOT
 from .game import Game
 from .labels import label, norm_lang
@@ -399,7 +399,11 @@ class Engine:
             "device": self.device,
             "half": self.half,
             "camera_ok": self.camera.connected,
-            "camera_index": self.camera.index,
+            "camera_index": self.camera.index if not is_stream(self.camera.index) else None,
+            "camera_label": self.camera.label,
+            "camera_buffering": self.camera.buffering,
+            "camera_is_stream": is_stream(self.camera.index),
+            "stream_available": bool(self.camera.stream),
             "camera_size": self.camera.actual_size,
             "loaded_models": list(self._models.keys()),
             "model_files": self.model_files,

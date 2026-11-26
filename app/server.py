@@ -30,12 +30,23 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="YOLO26 Demo", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
+# 首頁與前端檔都加 no-cache:每次向伺服器確認(沒變就用快取),更新程式後不會出現新 JS 配舊 HTML
+_NO_CACHE = {"Cache-Control": "no-cache"}
+
+
+class _NoCacheStatic(StaticFiles):
+    def file_response(self, *args, **kwargs):
+        resp = super().file_response(*args, **kwargs)
+        resp.headers.update(_NO_CACHE)
+        return resp
+
+
+app.mount("/static", _NoCacheStatic(directory=ROOT / "static"), name="static")
 
 
 @app.get("/")
 def index():
-    return FileResponse(ROOT / "static" / "index.html")
+    return FileResponse(ROOT / "static" / "index.html", headers=_NO_CACHE)
 
 
 @app.get("/stream")
@@ -83,13 +94,20 @@ def set_mode(req: ModeReq):
 
 
 class CamReq(BaseModel):
-    index: int
+    index: int | str   # 攝影機編號,或串流網址 / 影片檔路徑
 
 
 @app.post("/api/camera")
 def set_camera(req: CamReq):
     engine.camera.switch(req.index)
-    return {"index": req.index}
+    return {"source": engine.camera.label}
+
+
+@app.post("/api/camera/toggle")
+def toggle_camera():
+    """攝影機 ⇄ 串流(畫面上的按鈕與 C 鍵)。"""
+    engine.camera.toggle()
+    return {"source": engine.camera.label}
 
 
 @app.get("/api/debug/threads")
@@ -101,7 +119,7 @@ def debug_threads():
     names = {t.ident: t.name for t in threading.enumerate()}
     return {names.get(tid, str(tid)): traceback.format_stack(f)[-6:]
             for tid, f in sys._current_frames().items()
-            if names.get(tid) in ("engine", "render", "camera")}
+            if names.get(tid) in ("engine", "render", "camera", "camera-reader")}
 
 
 class LangReq(BaseModel):

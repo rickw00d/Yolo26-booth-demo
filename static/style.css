@@ -96,6 +96,8 @@ aside { width: 460px; min-width: 460px; background: var(--panel); border-left: 1
 .toggle.on { border-color: var(--ok); }
 .toggle.on b { color: var(--ok); }
 .toggle:not(.on) b { color: var(--warn); }
+.toggle.source b, .toggle.source:not(.on) b { color: var(--accent); }
+.toggle.source.on { border-color: var(--accent); }
 .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .modes button, .tabs button, .quick button, .row button, .wide {
   background: var(--card); color: var(--text); border: 1px solid var(--line);

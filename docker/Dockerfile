@@ -8,7 +8,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir fastapi "uvicorn[standard]" httpx pyyaml psutil pillow \
-    opencc-python-reimplemented "lap>=0.5.12"
+    opencc-python-reimplemented "lap>=0.5.12" yt-dlp
 
 WORKDIR /app
 CMD ["python", "run.py", "--profile", "config.gb10.yaml"]
