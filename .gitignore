@@ -20,3 +20,6 @@ runs/
 # YOLOE 文字編碼器(自動下載)
 mobileclip*.ts
 *.part
+
+# 匯出的 3D 模型(含產品照片貼圖,不上傳公開倉庫)
+exports/
