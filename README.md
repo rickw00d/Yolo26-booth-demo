@@ -14,7 +14,7 @@ It is developed on a Windows laptop (RTX 4060 8GB) and will be ported to NVIDIA 
 | Human pose | 17-keypoint skeleton | `3` |
 | Multi-model | Segmentation and pose models run together | `4` |
 | Open vocabulary | Type anything ("red cup, glasses", in English or Chinese). An LLM translates it and YOLOE finds it, with no retraining | `5` |
-| Ask AI | An on-device VLM looks at the live frame and streams its answer | `D` (describe) |
+| Ask AI | An on-device VLM looks at the live frame and streams its answer. Chinese answers are converted to Taiwan Traditional Chinese on the fly (OpenCC `s2twp`) | `D` (describe) |
 | Item challenge | Show 5 requested items to the camera within 30 s, with score and leaderboard | `G` |
 | CPU vs GPU | Runs the same frame on CPU and on GPU | `B` |
 | Face blur | Pixelates every face, including people far away or facing away | `P` |
@@ -67,6 +67,7 @@ Inference and rendering run in separate threads, so the GPU never waits for the 
 | `app/privacy.py` | Face blur |
 | `app/render.py` | Neon corner boxes, masks, skeletons, trails, CJK text |
 | `app/llm.py` | Ollama client (bilingual prompts) |
+| `app/zhconv.py` | Streaming Simplified → Taiwan Traditional conversion (OpenCC `s2twp`) |
 | `app/game.py` | Item challenge and leaderboard |
 | `app/server.py` | FastAPI routes (`/api/debug/threads` shows each thread's stack if the video freezes) |
 | `static/` | Front end (plain HTML/JS, no CDN, works offline) |

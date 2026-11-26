@@ -9,3 +9,4 @@ pyyaml
 psutil
 pillow
 lap>=0.5.12
+opencc-python-reimplemented   # 簡轉繁(純 Python,Windows / ARM64 都能裝)

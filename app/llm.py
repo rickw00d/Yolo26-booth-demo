@@ -6,6 +6,8 @@ import re
 
 import httpx
 
+from .zhconv import StreamConverter
+
 log = logging.getLogger("llm")
 
 VLM_SYSTEM = {
@@ -55,7 +57,21 @@ class Ollama:
             log.warning("VLM 暖機失敗:%s", e)
 
     async def ask_stream(self, question: str, jpeg: bytes, context: str = "", lang: str = "zh"):
-        """逐段產生 VLM 的回答文字。"""
+        """逐段產生 VLM 的回答文字;中文模式會即時把簡體字與中國用語轉成台灣繁體。"""
+        if lang != "zh":
+            async for piece in self._ask_raw(question, jpeg, context, lang):
+                yield piece
+            return
+        conv = StreamConverter()
+        async for piece in self._ask_raw(question, jpeg, context, lang):
+            out = conv.feed(piece)
+            if out:
+                yield out
+        rest = conv.flush()
+        if rest:
+            yield rest
+
+    async def _ask_raw(self, question: str, jpeg: bytes, context: str, lang: str):
         img = base64.b64encode(jpeg).decode()
         user = question
         if context:
