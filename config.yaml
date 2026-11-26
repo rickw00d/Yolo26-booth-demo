@@ -58,7 +58,7 @@ ui:
   subtitle_en: "100% on-device · Offline · No data leaves this box"
   subtitle_zh_cn: "100% 本机运算 · 未联网 · 数据不外传"
   idle_seconds: 15            # 畫面上沒人多久後顯示待機吸引畫面
-  device_label: "RTX 4060 Laptop"   # 移到 GB10 後改成 "NVIDIA GB10"
+  device_label: "RTX 4060 Laptop"   # 移到 GB10 後改成 "MSI EdgeXpert"
 
 game:
   duration: 30                # 物品挑戰秒數

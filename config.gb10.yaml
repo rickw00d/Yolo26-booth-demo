@@ -34,4 +34,4 @@ ollama:
   keep_alive: 24h              # 展場一整天都不卸載模型
 
 ui:
-  device_label: "NVIDIA GB10"
+  device_label: "MSI EdgeXpert"

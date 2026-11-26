@@ -3,7 +3,7 @@
 **English** | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)
 
 This is a trade-show booth demo that runs real-time object recognition from a USB camera. The front end is a full-screen browser dashboard and the back end is FastAPI. All AI runs on the device (Ultralytics YOLO26/YOLOE plus an Ollama vision-language model), so no internet connection is needed.
-It is developed on a Windows laptop (RTX 4060 8GB) and will be ported to NVIDIA GB10.
+It was developed on a Windows laptop (RTX 4060 8GB) and has been ported to and tested on NVIDIA GB10.
 
 ## Features
 
@@ -124,9 +124,23 @@ git clone https://github.com/rickw00d/Yolo26-booth-demo.git && cd Yolo26-booth-d
 | Translation model | Shares the VLM (not enough VRAM) | Separate qwen3.5:2b |
 | Camera backend | MSMF | V4L2 |
 
-### Known risks (not yet verified on GB10 hardware)
+### GB10 verification (DGX OS / Ubuntu 24.04 aarch64, 2026-11-26)
 
-- The PyTorch cu130 aarch64 wheels work according to community reports and the Ultralytics docs. The Ultralytics docs also warn that pip builds may not be fully optimized; if anything breaks, switch to Docker.
+| Item | Result |
+|---|---|
+| PyTorch | 2.14.1+cu130 aarch64 wheel installs natively; CUDA works on GB10 (compute capability 12.1) |
+| GPU check (`tools/check_env.py`) | FP16 matrix multiply ~78 TFLOPS |
+| Ultralytics | 8.4.219; all x-size weights, `yolo26s-pose`, `yoloe-26l-seg` and the MobileCLIP text encoder download |
+| OpenCV | V4L2 and GStreamer camera backends available |
+| Camera | USB camera opens through V4L2 at 1280×720 (`camera.index: 0`) |
+| Ollama | 0.40.18; `ornith-1.5:9b` (VLM) and `qwen3.5:2b` (translation) installed; the app's requests to Ollama succeed |
+| Fonts | Noto Sans CJK TC / SC found |
+| Driver | 580.178.04, CUDA 13.0 |
+
+Docker was not needed. `setup_gb10.sh` needs `sudo` for the apt step; everything else runs as a normal user.
+
+### Notes
+
 - Open vocabulary (YOLOE) has to change classes at any time, so it is not converted to TensorRT and runs slower than the other modes.
 - On unified memory, `nvidia-smi` may report memory as N/A. The dashboard then shows system memory instead.
 - Reference: [Ultralytics DGX Spark guide](https://docs.ultralytics.com/guides/nvidia-dgx-spark)

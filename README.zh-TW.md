@@ -3,7 +3,7 @@
 [English](README.md) | **繁體中文** | [简体中文](README.zh-CN.md)
 
 這是一套用 USB 攝影機做即時物件辨識的攤位展示程式。前端是瀏覽器全螢幕儀表板,後端用 FastAPI,AI 全部在本機執行(Ultralytics YOLO26/YOLOE 加上 Ollama 視覺語言模型),不需要連網。
-目前在 Windows 筆電(RTX 4060 8GB)上開發,之後會移植到 NVIDIA GB10。
+在 Windows 筆電(RTX 4060 8GB)上開發,已移植到 NVIDIA GB10 並實機測試。
 
 ## 功能
 
@@ -124,9 +124,23 @@ git clone https://github.com/rickw00d/Yolo26-booth-demo.git && cd Yolo26-booth-d
 | 翻譯模型 | 共用 VLM(顯示記憶體不夠) | 獨立的 qwen3.5:2b |
 | 攝影機後端 | MSMF | V4L2 |
 
-### 已知風險(未在 GB10 實機驗證)
+### GB10 實機驗證(DGX OS / Ubuntu 24.04 aarch64,2026-11-26)
 
-- PyTorch cu130 aarch64 wheel 依社群與 Ultralytics 文件可用;Ultralytics 文件也提醒 pip 版可能未完全最佳化,有問題就改用 Docker。
+| 項目 | 結果 |
+|---|---|
+| PyTorch | 2.14.1+cu130 aarch64 wheel 可直接安裝,GB10 上 CUDA 正常(compute capability 12.1) |
+| GPU 測試(`tools/check_env.py`) | FP16 矩陣乘法約 78 TFLOPS |
+| Ultralytics | 8.4.219;x 版權重、`yolo26s-pose`、`yoloe-26l-seg` 與 MobileCLIP 文字編碼器皆可下載 |
+| OpenCV | 有 V4L2 與 GStreamer 攝影機後端 |
+| 攝影機 | USB 攝影機透過 V4L2 以 1280×720 開啟(`camera.index: 0`) |
+| Ollama | 0.40.18;已安裝 `ornith-1.5:9b`(VLM)與 `qwen3.5:2b`(翻譯);程式呼叫 Ollama 正常 |
+| 字型 | 找得到 Noto Sans CJK TC / SC |
+| 驅動 | 580.178.04,CUDA 13.0 |
+
+不需要用到 Docker。`setup_gb10.sh` 的 apt 步驟需要 `sudo`,其他步驟一般使用者即可執行。
+
+### 備註
+
 - 開放詞彙(YOLOE)要能隨時換類別,不轉 TensorRT,速度會比其他模式慢。
 - `nvidia-smi` 的記憶體在統一記憶體架構下可能是 N/A,儀表板會自動改顯示系統記憶體。
 - 參考:[Ultralytics DGX Spark 指南](https://docs.ultralytics.com/guides/nvidia-dgx-spark)
