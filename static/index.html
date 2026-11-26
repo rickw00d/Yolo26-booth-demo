@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YOLO26 Demo</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1 id="title">YOLO26</h1>
+    <span class="badge offline">● <span id="subtitle"></span></span>
+  </div>
+  <div class="header-right">
+    <div class="device"><span class="dim" data-i18n="platform"></span> <b id="deviceLabel">—</b></div>
+    <button id="langBtn" class="lang-btn" title="L"><span data-l="zh">中</span><span data-l="en">EN</span></button>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <img id="video" src="/stream" alt="live">
+    <div class="hud-top">
+      <span class="live">LIVE</span>
+      <span id="modeName" class="mode-pill"></span>
+      <span id="multiPill" class="mode-pill hidden" data-i18n="multiPill"></span>
+      <span id="privacyPill" class="mode-pill privacy hidden" data-i18n="privacyPill"></span>
+    </div>
+
+    <!-- 遊戲疊層 -->
+    <div id="gameOverlay" class="overlay game hidden">
+      <div class="countdown"><span id="gameRemain">30</span><small data-i18n="sec"></small></div>
+      <div class="game-title" data-i18n="gameTitle"></div>
+      <ul id="gameTargets" class="targets"></ul>
+    </div>
+    <div id="resultOverlay" class="overlay result hidden">
+      <div class="result-card">
+        <div class="result-title" data-i18n="gameOver"></div>
+        <div class="result-score"><span id="resScore">0</span><small data-i18n="pts"></small></div>
+        <div id="resDetail" class="dim"></div>
+        <div class="dim small" data-i18n="playAgain"></div>
+      </div>
+    </div>
+
+    <!-- 待機吸引畫面 -->
+    <div id="idleOverlay" class="overlay idle hidden">
+      <div class="idle-card">
+        <div class="idle-big" data-i18n="idleBig"></div>
+        <div class="idle-sub" data-i18n="idleSub"></div>
+      </div>
+    </div>
+
+    <div id="camWarn" class="overlay warn hidden" data-i18n="camWarn"></div>
+  </section>
+
+  <aside id="panel">
+    <div class="tiles">
+      <div class="tile"><div class="tv" id="fps">—</div><div class="tl">FPS</div></div>
+      <div class="tile"><div class="tv" id="latency">—</div><div class="tl" data-i18n="latency"></div></div>
+      <div class="tile"><div class="tv" id="gpuUtil">—</div><div class="tl" data-i18n="gpuUtil"></div></div>
+      <div class="tile"><div class="tv" id="mem">—</div><div class="tl" id="memLabel"></div></div>
+    </div>
+
+    <div class="modes" id="modes"></div>
+    <button id="privacyBtn" class="toggle"><kbd>P</kbd><span data-i18n="faceBlur"></span>: <b id="privacyState">—</b></button>
+
+    <div class="card counter">
+      <div class="counter-row">
+        <div><div class="big" id="uniquePeople">0</div><div class="dim small" data-i18n="uniquePeople"></div></div>
+        <div><div class="big" id="uniqueTotal">0</div><div class="dim small" data-i18n="uniqueTotal"></div></div>
+      </div>
+      <div id="counts" class="counts"></div>
+    </div>
+
+    <nav class="tabs">
+      <button data-tab="ask" class="active" data-i18n="tabAsk"></button>
+      <button data-tab="vocab" data-i18n="tabVocab"></button>
+      <button data-tab="game" data-i18n="tabGame"></button>
+      <button data-tab="bench" data-i18n="tabBench"></button>
+    </nav>
+
+    <div class="tab-body" id="tab-ask">
+      <div class="quick">
+        <button data-q="q1" data-i18n="q1btn"></button>
+        <button data-q="q2" data-i18n="q2btn"></button>
+        <button data-q="q3" data-i18n="q3btn"></button>
+        <button data-q="q4" data-i18n="q4btn"></button>
+      </div>
+      <form id="askForm" class="row">
+        <input id="askInput" data-i18n-ph="askPh" autocomplete="off">
+        <button type="submit" data-i18n="askBtn"></button>
+      </form>
+      <div id="answer" class="answer dim" data-i18n="answerHint"></div>
+      <div class="dim small" id="vlmInfo"></div>
+    </div>
+
+    <div class="tab-body hidden" id="tab-vocab">
+      <p class="dim small" data-i18n="vocabHint"></p>
+      <form id="vocabForm" class="row">
+        <input id="vocabInput" data-i18n-ph="vocabPh" autocomplete="off">
+        <button type="submit" data-i18n="vocabBtn"></button>
+      </form>
+      <div id="vocabList" class="chips"></div>
+    </div>
+
+    <div class="tab-body hidden" id="tab-game">
+      <form id="gameForm" class="row">
+        <input id="playerInput" data-i18n-ph="playerPh" maxlength="12" autocomplete="off">
+        <button type="submit" data-i18n="gameStart"></button>
+      </form>
+      <div class="board-title" data-i18n="board"></div>
+      <ol id="board" class="board"></ol>
+    </div>
+
+    <div class="tab-body hidden" id="tab-bench">
+      <p class="dim small" data-i18n="benchHint"></p>
+      <button id="benchBtn" class="wide"></button>
+      <div class="bench">
+        <div class="bar-row"><span>CPU</span><div class="bar"><i id="cpuBar"></i></div><b id="cpuMs">—</b></div>
+        <div class="bar-row"><span>GPU</span><div class="bar gpu"><i id="gpuBar"></i></div><b id="gpuMs">—</b></div>
+        <div class="speedup" id="speedup"></div>
+      </div>
+    </div>
+
+    <footer class="sys dim small" id="sysLine">—</footer>
+  </aside>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

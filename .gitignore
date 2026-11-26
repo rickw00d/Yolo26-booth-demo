@@ -1,0 +1,22 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 模型權重(首次執行自動下載)
+*.pt
+*.engine
+*.onnx
+weights/
+
+# 執行時產生的資料
+snapshots/
+data/
+runs/
+
+# 本機工具設定
+.claude/
+
+# YOLOE 文字編碼器(自動下載)
+mobileclip*.ts
+*.part

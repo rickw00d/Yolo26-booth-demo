@@ -1,0 +1,11 @@
+# PyTorch 請依平台另外安裝(見 README):
+#   Windows + RTX:pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+#   GB10 (ARM64):建議使用 NVIDIA PyTorch 容器,或 cu130 的 aarch64 wheel
+ultralytics>=8.4
+fastapi
+uvicorn[standard]
+httpx
+pyyaml
+psutil
+pillow
+lap>=0.5.12

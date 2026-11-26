@@ -1,0 +1,72 @@
+# YOLO26 展示程式設定檔
+# 移植到 GB10 時通常只需要改這個檔案(見 README「移植到 GB10」)
+
+camera:
+  index: 0            # 攝影機編號;本機 0 = 內建 HD Camera,1 = OBS 虛擬攝影機。接上 USB 鏡頭後編號可能變動
+  width: 1280
+  height: 720
+  fps: 30
+  backend: auto       # auto(Windows=msmf、Linux=v4l2) | dshow | msmf | v4l2 | gstreamer
+  mirror: true        # 鏡像顯示,來賓面對鏡頭比較直覺
+
+device: auto          # auto | cuda | cpu
+half: true            # GPU 上使用 FP16
+imgsz: 640
+
+# 各模式使用的模型;第一次執行會自動下載
+# GB10 記憶體夠大,可改成 m / l / x 版本,並把 preload 設為 true
+models:
+  detect: yolo26s.pt
+  segment: yolo26s-seg.pt
+  pose: yolo26s-pose.pt
+  openvocab: yoloe-26s-seg.pt          # 開放詞彙;若下載失敗會改用 fallback
+  openvocab_fallback: yoloe-11s-seg.pt
+preload: false        # true = 啟動時把所有模型載入(GB10 建議開)
+
+default_mode: detect  # detect | segment | pose | multi | openvocab
+conf: 0.40
+tracker: bytetrack.yaml
+trail_length: 30      # 追蹤軌跡長度(影格數)
+
+privacy:
+  face_blur: true       # 啟動時是否開啟人臉模糊(展場中可按 P 切換)
+  model: yolo26n-pose.pt   # 非姿態模式時用來找臉的模型;nano 版最快(GB10 可用 s/m)
+  every_n: 2            # 每幾個影格偵測一次人臉(GB10 可設 1)
+  style: pixelate       # pixelate(馬賽克) | gaussian(高斯模糊)
+  pixel_blocks: 10      # 馬賽克格數,越小越糊
+  scale: 1.0            # 模糊範圍倍率,覺得蓋不滿就調大
+  hold_frames: 6        # 保留最近幾個影格的人臉位置,避免漏偵測時人臉閃現
+  kpt_conf: 0.3
+  blur_vlm: true        # 送給 VLM 的畫面也模糊(較安全;AI 就無法描述臉部細節)
+
+ollama:
+  url: http://127.0.0.1:11434
+  vlm_model: ornith-1.5:9b    # 看圖問答 / AI 解說;8GB 實測最準確(Qwen3.5 架構,Apache 2.0)
+  # 中文物品名稱翻譯成英文給 YOLOE。
+  # 筆電 8GB VRAM 放不下兩個模型,另用小模型會觸發換模型(實測 58 秒),
+  # 共用已載入的 VLM 只要約 2 秒。GB10 記憶體夠,可改成獨立的 LLM。
+  llm_model: ornith-1.5:9b
+  timeout: 120
+  keep_alive: 30m
+
+ui:
+  language: zh                # zh | en;畫面右上角按鈕或 L 鍵可即時切換
+  title: "YOLO26 即時 AI 視覺展示"
+  title_en: "YOLO26 Real-time AI Vision"
+  subtitle: "100% 本機運算 · 未連網 · 資料不外流"
+  subtitle_en: "100% on-device · Offline · No data leaves this box"
+  idle_seconds: 15            # 畫面上沒人多久後顯示待機吸引畫面
+  device_label: "RTX 4060 Laptop"   # 移到 GB10 後改成 "NVIDIA GB10"
+
+game:
+  duration: 30                # 物品挑戰秒數
+  targets_per_round: 5
+  confirm_frames: 3           # 連續幾個影格偵測到才算找到
+  pool: [cell phone, cup, bottle, book, backpack, handbag, umbrella,
+         keyboard, mouse, scissors, remote, banana, apple, orange,
+         spoon, tie, teddy bear, toothbrush, wine glass, clock]
+
+server:
+  host: 0.0.0.0
+  port: 8000
+  jpeg_quality: 80
