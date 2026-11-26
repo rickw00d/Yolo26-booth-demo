@@ -11,15 +11,19 @@ from .zhconv import StreamConverter
 log = logging.getLogger("llm")
 
 VLM_SYSTEM = {
-    "zh": ("你是展場攤位上的 AI 視覺助理,正在透過攝影機觀看現場畫面。"
+    "zh-TW": ("你是展場攤位上的 AI 視覺助理,正在透過攝影機觀看現場畫面。"
            "請一律使用繁體中文(台灣用語)回答,語氣親切、有趣,回答控制在 80 字以內。"
            "只描述畫面中確實看得到的內容,看不清楚就說不確定,不要猜測個人身分、年齡或敏感特徵。"),
+    "zh-CN": ("你是展会展位上的 AI 视觉助理,正在通过摄像头观看现场画面。"
+              "请一律使用简体中文回答,语气亲切、有趣,回答控制在 80 字以内。"
+              "只描述画面中确实看得到的内容,看不清楚就说不确定,不要猜测个人身份、年龄或敏感特征。"),
     "en": ("You are an AI vision assistant at a trade-show booth, watching the live camera feed. "
            "Always answer in English, in a friendly and fun tone, within 50 words. "
            "Only describe what is clearly visible; say you are unsure if it is unclear. "
            "Never guess anyone's identity, age or other sensitive traits."),
 }
-CONTEXT_PREFIX = {"zh": "(偵測模型目前看到:{})", "en": "(The detector currently sees: {})"}
+CONTEXT_PREFIX = {"zh-TW": "(偵測模型目前看到:{})", "zh-CN": "(检测模型目前看到:{})",
+                  "en": "(The detector currently sees: {})"}
 
 TRANSLATE_PROMPT = (
     "依序把下列 {n} 個物品名稱翻譯成英文名詞片語,給物件偵測模型使用。"
@@ -56,13 +60,13 @@ class Ollama:
         except Exception as e:
             log.warning("VLM 暖機失敗:%s", e)
 
-    async def ask_stream(self, question: str, jpeg: bytes, context: str = "", lang: str = "zh"):
+    async def ask_stream(self, question: str, jpeg: bytes, context: str = "", lang: str = "zh-TW"):
         """逐段產生 VLM 的回答文字;中文模式會即時把簡體字與中國用語轉成台灣繁體。"""
-        if lang != "zh":
+        if lang == "en":
             async for piece in self._ask_raw(question, jpeg, context, lang):
                 yield piece
             return
-        conv = StreamConverter()
+        conv = StreamConverter(lang)   # zh-TW → 台灣繁體;zh-CN → 簡體
         async for piece in self._ask_raw(question, jpeg, context, lang):
             out = conv.feed(piece)
             if out:

@@ -7,7 +7,7 @@ const post = (url, body) => fetch(url, {
 
 // ---------- 中英文字典 ----------
 const I18N = {
-  zh: {
+  "zh-TW": {
     platform: "運算平台", multiPill: "2 個模型同時運行", privacyPill: "🛡 人臉已模糊",
     sec: "秒", gameTitle: "把這些東西拿到鏡頭前!", gameOver: "挑戰結束!", pts: "分",
     playAgain: "按 G 再玩一次", idleBig: "走近一點,讓 AI 認識你 👋",
@@ -34,6 +34,34 @@ const I18N = {
              multi: "多模型同時運行", openvocab: "自由辨識(開放詞彙)" },
     status: { starting: "啟動中", running: "運行中", loading: "載入模型", error: "錯誤" },
     temp: "溫度", camera: "攝影機", uptime: "已運行",
+  },
+  "zh-CN": {
+    platform: "运算平台", multiPill: "2 个模型同时运行", privacyPill: "🛡 人脸已模糊",
+    sec: "秒", gameTitle: "把这些东西拿到镜头前!", gameOver: "挑战结束!", pts: "分",
+    playAgain: "按 G 再玩一次", idleBig: "走近一点,让 AI 认识你 👋",
+    idleSub: "实时识别 80 种物品 · 人体姿态 · 用中文跟 AI 对话", camWarn: "摄像头连接中…",
+    latency: "推理延迟 ms", gpuUtil: "GPU 使用率", gpuMem: "显存", uniMem: "统一内存",
+    faceBlur: "人脸模糊", on: "开启", off: "关闭", faces: "张脸",
+    uniquePeople: "累计识别人次", uniqueTotal: "累计识别物体", noObjects: "画面中尚未检测到物体",
+    tabAsk: "AI 问答", tabVocab: "自由识别", tabGame: "物品挑战", tabBench: "性能对比",
+    q1btn: "描述画面", q2btn: "有几个人?", q3btn: "我拿的是什么?", q4btn: "幽默介绍我",
+    q1: "请描述你现在看到的画面", q2: "画面里有几个人?他们在做什么?",
+    q3: "我手上拿的是什么?可以用来做什么?", q4: "用一句幽默的话介绍画面中的人",
+    askPh: "用中文问 AI 任何关于画面的问题…", askBtn: "问",
+    answerHint: "本机视觉语言模型会看着画面回答你。",
+    vlmModel: "视觉模型", vlmMissing: "(尚未下载!)", ollamaDown: "⚠ 无法连接 Ollama,AI 问答暂停",
+    vocabHint: "输入任何想找的东西(中文也可以),不用重新训练模型,AI 立刻找给你看。",
+    vocabPh: "例如:红色杯子、眼镜、工作证、耳机", vocabBtn: "找", vocabBusy: "AI 正在理解你的描述…",
+    playerPh: "你的昵称(选填)", gameStart: "开始挑战", board: "🏆 今日排行榜",
+    boardEmpty: "还没有人挑战,成为第一名吧!", guest: "来宾",
+    resDetail: (r) => `${r.player}:找到 ${r.found}/${r.total} 个,用时 ${r.time} 秒`,
+    benchHint: "同一张画面、同一个模型,分别交给 CPU 与 GPU 运算。",
+    benchStart: "开始比较", benchRunning: "测试中…", benchFail: "测试失败",
+    speedup: (x) => `GPU 快 ${x} 倍`,
+    modes: { detect: "目标检测", segment: "实例分割", pose: "人体姿态",
+             multi: "多模型同时运行", openvocab: "自由识别(开放词汇)" },
+    status: { starting: "启动中", running: "运行中", loading: "加载模型", error: "错误" },
+    temp: "温度", camera: "摄像头", uptime: "已运行",
   },
   en: {
     platform: "Running on", multiPill: "2 models running together", privacyPill: "🛡 Faces blurred",
@@ -65,7 +93,10 @@ const I18N = {
   },
 };
 
-let lang = "zh";
+const LANGS = ["zh-TW", "zh-CN", "en"];
+const HTML_LANG = { "zh-TW": "zh-Hant-TW", "zh-CN": "zh-Hans-CN", en: "en" };
+const TITLE_KEY = { "zh-TW": "", "zh-CN": "_zh_cn", en: "_en" };
+let lang = "zh-TW";
 let uiCfg = {};
 let modes = [];
 let idleSeconds = 15;
@@ -80,14 +111,14 @@ const t = (k) => I18N[lang][k] ?? k;
 // ---------- 語言 ----------
 function applyLang(newLang) {
   lang = newLang;
-  document.documentElement.lang = lang === "zh" ? "zh-Hant-TW" : "en";
+  document.documentElement.lang = HTML_LANG[lang];
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll("#langBtn span").forEach((s) => s.classList.toggle("on", s.dataset.l === lang));
-  const title = (lang === "en" && uiCfg.title_en) || uiCfg.title || "YOLO26";
+  const title = uiCfg[`title${TITLE_KEY[lang]}`] || uiCfg.title || "YOLO26";
   $("title").textContent = title;
   document.title = title;
-  $("subtitle").textContent = (lang === "en" && uiCfg.subtitle_en) || uiCfg.subtitle || "";
+  $("subtitle").textContent = uiCfg[`subtitle${TITLE_KEY[lang]}`] || uiCfg.subtitle || "";
   document.querySelectorAll(".modes button").forEach((b, i) => {
     b.innerHTML = `<kbd>${i + 1}</kbd>${t("modes")[b.dataset.mode]}`;
   });
@@ -125,7 +156,7 @@ async function init() {
     box.appendChild(b);
   });
   const stats = await (await fetch("/api/stats")).json();
-  applyLang(stats.lang || uiCfg.language || "zh");
+  applyLang(LANGS.includes(stats.lang) ? stats.lang : "zh-TW");
   fetch("/api/health").then((r) => r.json()).then((h) => { ollamaInfo = h.ollama; renderVlmInfo(); });
   poll();
 }
@@ -200,7 +231,7 @@ function render(d) {
 }
 
 // ---------- 遊戲 ----------
-const targetName = (x) => (lang === "zh" ? x.zh : x.name);
+const targetName = (x) => ({ "zh-TW": x.zh, "zh-CN": x.zh_cn, en: x.name })[lang];
 const playerName = (p) => p || t("guest");
 
 function renderGame(g) {
@@ -260,7 +291,7 @@ function renderVocab(v) {
   const k = lang + v.map((x) => x.en).join("|");
   if (k === vocabKey) return;
   vocabKey = k;
-  $("vocabList").innerHTML = v.map((x) => (lang === "zh"
+  $("vocabList").innerHTML = v.map((x) => (lang !== "en"
     ? `<span>${x.zh} <span class="dim small">${x.en}</span></span>`
     : `<span>${x.en}</span>`)).join("");
 }
@@ -317,7 +348,10 @@ $("vocabForm").onsubmit = submitVocab;
 $("gameForm").onsubmit = (e) => { e.preventDefault(); startGame(); };
 $("benchBtn").onclick = () => post("/api/benchmark");
 $("privacyBtn").onclick = togglePrivacy;
-$("langBtn").onclick = () => setLang(lang === "zh" ? "en" : "zh");
+const nextLang = () => LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
+document.querySelectorAll("#langBtn span").forEach((s) => {
+  s.onclick = (e) => { e.stopPropagation(); setLang(s.dataset.l); };
+});
 
 // 操作員快捷鍵(輸入框中不觸發)
 const MODE_KEYS = ["detect", "segment", "pose", "multi", "openvocab"];
@@ -330,7 +364,7 @@ document.addEventListener("keydown", (e) => {
   else if (k === "d") ask(t("q1"));
   else if (k === "h") document.body.classList.toggle("kiosk");
   else if (k === "p") togglePrivacy();
-  else if (k === "l") setLang(lang === "zh" ? "en" : "zh");
+  else if (k === "l") setLang(nextLang());   // 繁 → 简 → EN 循環
   else if (k === "s") window.open("/api/snapshot");
   else if (k === "f") {
     if (document.fullscreenElement) document.exitFullscreen();

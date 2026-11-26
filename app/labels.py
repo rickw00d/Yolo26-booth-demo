@@ -1,4 +1,22 @@
-"""COCO 80 類別的繁體中文名稱。"""
+"""語言碼與 COCO 80 類別的中文名稱(繁體 / 簡體)。"""
+from .zhconv import convert
+
+LANGS = ("zh-TW", "zh-CN", "en")
+
+
+def norm_lang(lang: str | None) -> str:
+    """把舊設定的 zh 等寫法統一成 zh-TW / zh-CN / en。"""
+    lang = (lang or "zh-TW").strip()
+    low = lang.lower().replace("_", "-")
+    if low in ("zh", "zh-tw", "zh-hant", "tw"):
+        return "zh-TW"
+    if low in ("zh-cn", "zh-hans", "cn"):
+        return "zh-CN"
+    if low.startswith("en"):
+        return "en"
+    raise ValueError(lang)
+
+
 COCO_ZH = {
     "person": "人", "bicycle": "腳踏車", "car": "汽車", "motorcycle": "機車",
     "airplane": "飛機", "bus": "公車", "train": "火車", "truck": "卡車",
@@ -26,11 +44,26 @@ COCO_ZH = {
 }
 
 
-def label(name: str, lang: str = "zh", extra: dict | None = None) -> str:
-    """依語言回傳顯示名稱;英文直接用模型類別名稱。"""
+# 大陸用語和繁中逐字轉換不同的類別,手動指定
+_CN_OVERRIDES = {
+    "motorcycle": "摩托车", "bus": "公交车", "laptop": "笔记本电脑",
+    "orange": "橙子", "broccoli": "西兰花", "carrot": "胡萝卜", "spoon": "勺子",
+    "knife": "刀", "dining table": "餐桌",
+}
+COCO_ZH_CN = {k: _CN_OVERRIDES.get(k, convert(v, "zh-CN")) for k, v in COCO_ZH.items()}
+
+
+def zh_cn(name: str) -> str:
+    return COCO_ZH_CN.get(name, name)
+
+
+def label(name: str, lang: str = "zh-TW", extra: dict | None = None) -> str:
+    """依語言回傳顯示名稱;英文直接用模型類別名稱。extra 是自由辨識時來賓輸入的原文。"""
     if lang == "en":
         return name
-    return zh(name, extra)
+    if extra and name in extra:
+        return extra[name]
+    return zh_cn(name) if lang == "zh-CN" else zh(name)
 
 
 def zh(name: str, extra: dict | None = None) -> str:

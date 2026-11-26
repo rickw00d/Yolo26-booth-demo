@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 from .config import ROOT
-from .labels import zh
+from .labels import zh, zh_cn
 
 BOARD_FILE = ROOT / "data" / "leaderboard.json"
 
@@ -100,7 +100,7 @@ class Game:
                 "player": self.player,
                 "remain": round(remain, 1),
                 "duration": self.cfg.get("duration", 30),
-                "targets": [{"name": t, "zh": zh(t), "found": t in self.found,
+                "targets": [{"name": t, "zh": zh(t), "zh_cn": zh_cn(t), "found": t in self.found,
                              "at": self.found.get(t)} for t in self.targets],
                 "result": self.last_result,
                 "board": self.board,

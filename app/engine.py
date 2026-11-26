@@ -14,7 +14,8 @@ import torch
 from . import render
 from .camera import Camera
 from .game import Game
-from .labels import label
+from .labels import label, norm_lang
+from .zhconv import convert
 from .privacy import FaceBlur
 
 log = logging.getLogger("engine")
@@ -23,7 +24,7 @@ MODES = ["detect", "segment", "pose", "multi", "openvocab"]
 MODE_ZH = {"detect": "物件偵測", "segment": "實例分割", "pose": "人體姿態",
            "multi": "多模型同時運行", "openvocab": "開放詞彙(自由輸入)"}
 
-DEFAULT_VOCAB = [("person", "人"), ("glasses", "眼鏡"), ("watch", "手錶"),
+DEFAULT_VOCAB = [("person", "人"), ("glasses", "眼鏡"), ("watch", "手錶"),  # 中文為繁體;簡體介面顯示時會轉換
                  ("lanyard", "識別證吊繩"), ("bottle", "瓶子")]
 
 
@@ -103,7 +104,7 @@ class Engine:
         self.stats = {}
         self.benchmark = {"running": False, "result": None}
         self.status = "starting"   # 狀態碼,前端依語言翻譯
-        self.lang = cfg.get("ui", {}).get("language", "zh")
+        self.lang = norm_lang(cfg.get("ui", {}).get("language", "zh-TW"))
         self._running = False
         # 推論執行緒 → 繪圖執行緒 的交接區(只保留最新一筆,繪圖跟不上就丟舊的)
         self._job = None
@@ -160,9 +161,7 @@ class Engine:
                 self._apply_vocab(self._models["openvocab"])
 
     def set_lang(self, lang: str):
-        if lang not in ("zh", "en"):
-            raise ValueError(lang)
-        self.lang = lang
+        self.lang = norm_lang(lang)
 
     def set_mode(self, mode: str):
         if mode not in MODES:
@@ -318,7 +317,11 @@ class Engine:
     def _draw(self, frame, r, r_pose, mode):
         img = frame.copy()
         names = r.names
-        extra_zh = dict(self.vocab) if mode == "openvocab" else None
+        extra_zh = None
+        if mode == "openvocab":
+            extra_zh = dict(self.vocab)
+            if self.lang == "zh-CN":
+                extra_zh = {k: convert(v, "zh-CN") for k, v in extra_zh.items()}
         counts, present, objects = defaultdict(int), set(), []
         labels = []
         boxes = r.boxes
@@ -352,7 +355,7 @@ class Engine:
             render.draw_trails(img, self._trails, self._track_colors)
         if r_pose is not None and r_pose.keypoints is not None and len(r_pose.keypoints):
             render.draw_pose(img, r_pose.keypoints.data.cpu().numpy())
-        img = render.draw_labels(img, labels)
+        img = render.draw_labels(img, labels, self.lang)
         # 清掉已消失的軌跡,避免記憶體成長
         if len(self._trails) > 200:
             self._trails.clear()

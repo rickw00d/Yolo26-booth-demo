@@ -1,6 +1,6 @@
 # YOLO26 即時 AI 視覺展示
 
-[English](README.md) | **繁體中文**
+[English](README.md) | **繁體中文** | [简体中文](README.zh-CN.md)
 
 這是一套用 USB 攝影機做即時物件辨識的攤位展示程式。前端是瀏覽器全螢幕儀表板,後端用 FastAPI,AI 全部在本機執行(Ultralytics YOLO26/YOLOE 加上 Ollama 視覺語言模型),不需要連網。
 目前在 Windows 筆電(RTX 4060 8GB)上開發,之後會移植到 NVIDIA GB10。
@@ -14,11 +14,11 @@
 | 人體姿態 | 17 點骨架 | `3` |
 | 多模型同時運行 | 分割加姿態兩個模型同時跑 | `4` |
 | 自由辨識(開放詞彙) | 輸入「紅色杯子、眼鏡」等任意文字,由 LLM 翻成英文後交給 YOLOE,不需要重新訓練 | `5` |
-| AI 問答 | 本機 VLM 看著當下畫面回答,逐字串流顯示;中文回答即時轉成台灣繁體與用語(OpenCC `s2twp`) | `D`(描述畫面) |
+| AI 問答 | 本機 VLM 看著當下畫面回答,逐字串流顯示;中文回答即時轉換字形與用語:繁體用 OpenCC `s2twp`(台灣用語),簡體用 `tw2sp`(大陸用語) | `D`(描述畫面) |
 | 物品挑戰 | 30 秒內把指定的 5 樣物品拿到鏡頭前,有計分和排行榜 | `G` |
 | 效能對比 | 同一張畫面分別用 CPU 和 GPU 推論 | `B` |
 | 人臉模糊 | 對所有人臉打馬賽克,包含遠處和背對鏡頭的人 | `P` |
-| 中英文切換 | 介面、影像上的標籤、AI 回答語言一起切換 | `L` |
+| 語言切換 | 繁體中文/簡體中文/英文;介面、影像上的標籤、AI 回答語言一起切換 | `L` |
 | 待機吸引畫面 | 一段時間沒偵測到人就顯示招呼字幕 | 自動 |
 | 隱藏側欄 / 全螢幕 / 截圖 | 截圖會存到 `snapshots/` | `H` / `F` / `S` |
 
@@ -38,7 +38,7 @@ python -m venv .venv
 
 - 第一次執行會自動下載 YOLO 模型。**展前請在有網路的環境把五種模式都切過一次。**
 - 換攝影機:修改 `config.yaml` 的 `camera.index`。
-- 預設語言:修改 `config.yaml` 的 `ui.language`(`zh` 或 `en`)。
+- 預設語言:修改 `config.yaml` 的 `ui.language`(`zh-TW`、`zh-CN` 或 `en`)。
 
 ## 人臉模糊
 
@@ -67,7 +67,7 @@ python -m venv .venv
 | `app/privacy.py` | 人臉模糊 |
 | `app/render.py` | 霓虹角框、遮罩、骨架、軌跡、中文字 |
 | `app/llm.py` | Ollama 用戶端(中英文提示詞) |
-| `app/zhconv.py` | 串流簡轉繁(OpenCC `s2twp`,例:視頻→影片、軟件→軟體) |
+| `app/zhconv.py` | 串流繁簡轉換(OpenCC `s2twp`/`tw2sp`,例:視頻↔影片、軟件↔軟體) |
 | `app/game.py` | 物品挑戰與排行榜 |
 | `app/server.py` | FastAPI 路由(`/api/debug/threads` 可在畫面卡住時查看各執行緒狀態) |
 | `static/` | 前端(純 HTML/JS,不依賴 CDN,可離線) |
@@ -108,7 +108,7 @@ GB10 是 ARM64 架構,作業系統是 DGX OS(Ubuntu)。程式本身跨平台,主
    ui: { device_label: "NVIDIA GB10" }
    ```
 3. **TensorRT(選用)**:`yolo export model=yolo26x.pt format=engine half=True`,再把模型路徑改成 `.engine`。
-4. **中文字型**:`sudo apt install fonts-noto-cjk`。
+4. **中文字型**:`sudo apt install fonts-noto-cjk`。繁體標籤用 TC 字面,簡體標籤用 SC 字面。
 5. **記憶體顯示**:`nvidia-smi` 回報 N/A 時,儀表板會自動改為顯示統一記憶體。
 6. **開機自動啟動**:用 systemd 執行 `python run.py`,搭配 Chromium `--kiosk http://localhost:8000`。
 

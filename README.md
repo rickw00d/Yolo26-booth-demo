@@ -1,6 +1,6 @@
 # YOLO26 Real-time AI Vision Booth Demo
 
-**English** | [繁體中文](README.zh-TW.md)
+**English** | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)
 
 This is a trade-show booth demo that runs real-time object recognition from a USB camera. The front end is a full-screen browser dashboard and the back end is FastAPI. All AI runs on the device (Ultralytics YOLO26/YOLOE plus an Ollama vision-language model), so no internet connection is needed.
 It is developed on a Windows laptop (RTX 4060 8GB) and will be ported to NVIDIA GB10.
@@ -14,11 +14,11 @@ It is developed on a Windows laptop (RTX 4060 8GB) and will be ported to NVIDIA 
 | Human pose | 17-keypoint skeleton | `3` |
 | Multi-model | Segmentation and pose models run together | `4` |
 | Open vocabulary | Type anything ("red cup, glasses", in English or Chinese). An LLM translates it and YOLOE finds it, with no retraining | `5` |
-| Ask AI | An on-device VLM looks at the live frame and streams its answer. Chinese answers are converted to Taiwan Traditional Chinese on the fly (OpenCC `s2twp`) | `D` (describe) |
+| Ask AI | An on-device VLM looks at the live frame and streams its answer. Chinese answers are converted on the fly with OpenCC: `s2twp` for Traditional (Taiwan), `tw2sp` for Simplified (Mainland) | `D` (describe) |
 | Item challenge | Show 5 requested items to the camera within 30 s, with score and leaderboard | `G` |
 | CPU vs GPU | Runs the same frame on CPU and on GPU | `B` |
 | Face blur | Pixelates every face, including people far away or facing away | `P` |
-| Language toggle | Switches the UI, the on-video labels and the AI answer language together | `L` |
+| Language toggle | Traditional Chinese / Simplified Chinese / English. Switches the UI, the on-video labels and the AI answer language together | `L` |
 | Idle attract screen | Shows a greeting when nobody has been seen for a while | auto |
 | Hide panel / Fullscreen / Snapshot | Snapshots are saved to `snapshots/` | `H` / `F` / `S` |
 
@@ -38,7 +38,7 @@ At the booth, run `start_demo.bat` instead. It restarts the app automatically if
 
 - YOLO weights download on first use. **Before the show, switch through all five modes once while online.**
 - To change the camera, edit `camera.index` in `config.yaml`.
-- To change the default language, edit `ui.language` in `config.yaml` (`zh` or `en`).
+- To change the default language, edit `ui.language` in `config.yaml` (`zh-TW`, `zh-CN` or `en`).
 
 ## Face blur
 
@@ -67,7 +67,7 @@ Inference and rendering run in separate threads, so the GPU never waits for the 
 | `app/privacy.py` | Face blur |
 | `app/render.py` | Neon corner boxes, masks, skeletons, trails, CJK text |
 | `app/llm.py` | Ollama client (bilingual prompts) |
-| `app/zhconv.py` | Streaming Simplified → Taiwan Traditional conversion (OpenCC `s2twp`) |
+| `app/zhconv.py` | Streaming Traditional ↔ Simplified conversion (OpenCC `s2twp` / `tw2sp`) |
 | `app/game.py` | Item challenge and leaderboard |
 | `app/server.py` | FastAPI routes (`/api/debug/threads` shows each thread's stack if the video freezes) |
 | `static/` | Front end (plain HTML/JS, no CDN, works offline) |
@@ -108,7 +108,7 @@ GB10 is ARM64 and runs DGX OS (Ubuntu). The code is cross-platform; the main dif
    ui: { device_label: "NVIDIA GB10" }
    ```
 3. **TensorRT (optional)**: run `yolo export model=yolo26x.pt format=engine half=True`, then point the model paths to the `.engine` files.
-4. **CJK font**: run `sudo apt install fonts-noto-cjk`.
+4. **CJK font**: run `sudo apt install fonts-noto-cjk`. Traditional labels use the TC face and Simplified labels use the SC face.
 5. **Memory tile**: when `nvidia-smi` reports N/A, the dashboard shows unified memory instead.
 6. **Autostart**: run `python run.py` from a systemd service, with Chromium `--kiosk http://localhost:8000`.
 

@@ -50,11 +50,13 @@ ollama:
   keep_alive: 30m
 
 ui:
-  language: zh                # zh | en;畫面右上角按鈕或 L 鍵可即時切換
+  language: zh-TW             # zh-TW(繁體)| zh-CN(简体)| en;畫面右上角或按 L 可即時切換
   title: "YOLO26 即時 AI 視覺展示"
   title_en: "YOLO26 Real-time AI Vision"
+  title_zh_cn: "YOLO26 实时 AI 视觉展示"
   subtitle: "100% 本機運算 · 未連網 · 資料不外流"
   subtitle_en: "100% on-device · Offline · No data leaves this box"
+  subtitle_zh_cn: "100% 本机运算 · 未联网 · 数据不外传"
   idle_seconds: 15            # 畫面上沒人多久後顯示待機吸引畫面
   device_label: "RTX 4060 Laptop"   # 移到 GB10 後改成 "NVIDIA GB10"
 

@@ -110,10 +110,11 @@ class LangReq(BaseModel):
 
 @app.post("/api/lang")
 def set_lang(req: LangReq):
-    if req.lang not in ("zh", "en"):
-        raise HTTPException(400, "lang must be zh or en")
-    engine.set_lang(req.lang)
-    return {"lang": req.lang}
+    try:
+        engine.set_lang(req.lang)
+    except ValueError:
+        raise HTTPException(400, "lang must be zh-TW, zh-CN or en")
+    return {"lang": engine.lang}
 
 
 class PrivacyReq(BaseModel):
@@ -140,6 +141,10 @@ async def set_vocab(req: VocabReq):
     return {"vocab": [{"en": e, "zh": z} for e, z in pairs[:12]]}
 
 
+DEFAULT_QUESTION = {"zh-TW": "請描述你現在看到的畫面", "zh-CN": "请描述你现在看到的画面",
+                    "en": "Describe what you see."}
+
+
 class AskReq(BaseModel):
     question: str = ""
 
@@ -157,8 +162,7 @@ async def ask(req: AskReq):
     counts = engine.stats.get("counts", {})
     lang = engine.lang
     ctx = (", " if lang == "en" else "、").join(f"{k}×{v}" for k, v in counts.items())
-    question = req.question.strip()[:200] or (
-        "Describe what you see." if lang == "en" else "請描述你現在看到的畫面")
+    question = req.question.strip()[:200] or DEFAULT_QUESTION[lang]
 
     async def gen():
         try:

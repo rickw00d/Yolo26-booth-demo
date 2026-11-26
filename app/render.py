@@ -12,23 +12,34 @@ SKELETON = [(5, 7), (7, 9), (6, 8), (8, 10), (5, 6), (5, 11), (6, 12),
             (11, 12), (11, 13), (13, 15), (12, 14), (14, 16), (0, 1), (0, 2),
             (1, 3), (2, 4)]
 
-_FONT_CANDIDATES = [
-    "C:/Windows/Fonts/msjhbd.ttc", "C:/Windows/Fonts/msjh.ttc",
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-]
+# (字型檔, TTC 內的字面索引);Noto CJK 的 TTC 順序為 JP=0, KR=1, SC=2, TC=3, HK=4
+_FONT_CANDIDATES = {
+    "zh-TW": [("C:/Windows/Fonts/msjhbd.ttc", 0), ("C:/Windows/Fonts/msjh.ttc", 0),
+              ("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", 3),
+              ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 3),
+              ("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", 3),
+              ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", 0)],
+    "zh-CN": [("C:/Windows/Fonts/msyhbd.ttc", 0), ("C:/Windows/Fonts/msyh.ttc", 0),
+              ("C:/Windows/Fonts/simhei.ttf", 0),
+              ("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", 2),
+              ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 2),
+              ("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", 2),
+              ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", 0)],
+}
 
 
-def _load_font(size: int):
-    for p in _FONT_CANDIDATES:
-        if Path(p).exists():
-            return ImageFont.truetype(p, size)
+def _load_font(lang: str, size: int):
+    for path, index in _FONT_CANDIDATES[lang]:
+        if Path(path).exists():
+            try:
+                return ImageFont.truetype(path, size, index=index)
+            except OSError:
+                continue
     return None
 
 
-FONT = _load_font(22)
+FONTS = {lang: _load_font(lang, 22) for lang in _FONT_CANDIDATES}
+FONTS["en"] = FONTS["zh-TW"] or FONTS["zh-CN"]
 
 
 def color_for(key: int) -> tuple[int, int, int]:
@@ -86,10 +97,11 @@ def draw_trails(img, trails: dict, colors: dict):
             cv2.line(img, pts[i - 1], pts[i], c, thick, cv2.LINE_AA)
 
 
-def draw_labels(img, labels):
+def draw_labels(img, labels, lang: str = "zh-TW"):
     """labels: [(x, y, text, bgr)];用 PIL 畫中文,一次處理整張圖以降低成本。"""
     if not labels:
         return img
+    FONT = FONTS.get(lang) or FONTS["zh-TW"]
     if FONT is None:  # 找不到中文字型時退回 OpenCV
         for x, y, text, c in labels:
             cv2.putText(img, text.encode("ascii", "replace").decode(), (x, y - 6),
