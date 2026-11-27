@@ -1,0 +1,49 @@
+#!/bin/bash
+# 安裝後:把程式資料夾交給安裝的使用者,並以該使用者身分建立 Python 環境、下載模型。
+set -eo pipefail
+APP=/opt/yolo26-booth-demo
+LOG=/var/log/yolo26-booth-demo-install.log
+
+[ "$1" = configure ] || exit 0
+
+# 誰擁有程式資料夾:sudo 的使用者 → 圖形安裝工具(pkexec)的使用者 → 上次安裝的使用者 → UID 1000
+owner=""
+if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
+  owner="$SUDO_USER"
+elif [ -n "${PKEXEC_UID:-}" ] && [ "$PKEXEC_UID" != 0 ]; then
+  owner=$(getent passwd "$PKEXEC_UID" | cut -d: -f1)
+elif [ -s "$APP/.owner" ]; then
+  owner=$(cat "$APP/.owner")
+else
+  owner=$(getent passwd 1000 | cut -d: -f1)
+fi
+if [ -z "$owner" ] || ! getent passwd "$owner" >/dev/null; then
+  echo "找不到要執行展示程式的一般使用者。請用一般帳號執行:sudo apt install ./yolo26-booth-demo_*.deb" >&2
+  exit 1
+fi
+home=$(getent passwd "$owner" | cut -d: -f6)
+echo "$owner" > "$APP/.owner"
+chown -R "$owner:" "$APP"
+
+echo "以使用者 $owner 建立 Python 環境並下載模型(需要網路,約 10–20 分鐘)…"
+echo "完整記錄:$LOG"
+if ! runuser -u "$owner" -- env -i HOME="$home" USER="$owner" LANG=C.UTF-8 \
+     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+     bash "$APP/packaging/setup_env.sh" 2>&1 | tee "$LOG"; then
+  cat >&2 <<EOF
+
+✘ 環境建立失敗(常見原因:沒有網路)。程式檔已安裝,接好網路後擇一重試:
+    yolo26-demo --setup
+    sudo dpkg --configure -a
+EOF
+  exit 1
+fi
+
+cat <<EOF
+
+✔ 安裝完成
+  啟動:應用程式選單「YOLO26 即時 AI 視覺展示」,或在終端機執行 yolo26-demo --open
+  環境檢查:yolo26-demo --check;其他選項:yolo26-demo --help
+  設定檔:$APP/config.yaml、$APP/config.gb10.yaml
+EOF
+exit 0

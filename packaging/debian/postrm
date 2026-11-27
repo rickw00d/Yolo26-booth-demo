@@ -1,0 +1,20 @@
+#!/bin/bash
+# remove:刪掉 Python 環境(約 6 GB),保留模型、截圖、排行榜與設定檔
+# purge :整個程式資料夾都刪掉
+set -e
+APP=/opt/yolo26-booth-demo
+
+case "$1" in
+  remove)
+    rm -rf "$APP/.venv"
+    find "$APP" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+    if [ -d "$APP" ]; then
+      echo "模型、截圖、排行榜與設定檔保留在 $APP;要一起刪除請執行:sudo apt purge yolo26-booth-demo"
+    fi
+    ;;
+  purge)
+    rm -rf "$APP"
+    rm -f /var/log/yolo26-booth-demo-install.log
+    ;;
+esac
+exit 0

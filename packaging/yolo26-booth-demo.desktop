@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=YOLO26 Booth Demo
+Name[zh_TW]=YOLO26 即時 AI 視覺展示
+Name[zh_CN]=YOLO26 实时 AI 视觉展示
+Comment=Real-time object detection demo with USB camera or live stream
+Comment[zh_TW]=即時物件辨識展示(USB 攝影機或直播串流)
+Comment[zh_CN]=实时物体识别展示(USB 摄像头或直播视频流)
+Exec=yolo26-demo --open
+Icon=yolo26-booth-demo
+Terminal=true
+Categories=Science;ArtificialIntelligence;
+Keywords=YOLO;AI;camera;detection;

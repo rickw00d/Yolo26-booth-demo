@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#19e3ff"/>
+      <stop offset="1" stop-color="#8b5cff"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="#0b1026"/>
+  <!-- 偵測框的四個角 -->
+  <g fill="none" stroke="url(#g)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M28 46V28h18"/>
+    <path d="M82 28h18v18"/>
+    <path d="M100 82v18H82"/>
+    <path d="M46 100H28V82"/>
+  </g>
+  <!-- 鏡頭 -->
+  <circle cx="64" cy="64" r="17" fill="url(#g)"/>
+  <circle cx="64" cy="64" r="7" fill="#0b1026"/>
+</svg>

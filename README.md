@@ -87,6 +87,7 @@ Inference and rendering run in separate threads, so the GPU never waits for the 
 | `config.gb10.yaml` | GB10 profile (merged on top of config.yaml) |
 | `tools/` | Environment check, model prefetch, TensorRT export |
 | `setup_gb10.sh` / `start_demo.sh` / `deploy/` / `docker/` | Linux setup, start, autostart, Docker fallback |
+| `packaging/` | .deb package build script, installer scripts and the `yolo26-demo` command |
 | `app/camera.py` | Threaded capture (USB camera, stream or video file) with auto-reconnect and stream buffering |
 | `app/engine.py` | Model management, inference, render pipeline, stats, CPU/GPU benchmark |
 | `app/privacy.py` | Face blur |
@@ -122,7 +123,27 @@ Known limitations:
 
 GB10 (DGX Spark, MSI EdgeXpert, etc.) is ARM64 and runs DGX OS (Ubuntu). The code is cross-platform. Everything that differs lives in [config.gb10.yaml](config.gb10.yaml), which lists only the fields that differ from `config.yaml` and is merged on top at startup, and in the setup scripts.
 
-### Steps
+### One-click install (.deb)
+
+```bash
+./packaging/build_deb.sh                                   # build dist/yolo26-booth-demo_1.0.0_arm64.deb (~50 KB)
+sudo apt install ./dist/yolo26-booth-demo_1.0.0_arm64.deb  # install (needs internet, ~10–20 min)
+```
+
+The package installs the app to `/opt/yolo26-booth-demo`, owned by the user who ran the install, so models, snapshots and config edits need no root. During installation it creates the Python environment (PyTorch cu130), downloads the YOLO models, and pulls the Ollama models if Ollama is already installed. The install log is at `/var/log/yolo26-booth-demo-install.log`.
+
+| Command | What it does |
+|---|---|
+| App menu "YOLO26 Booth Demo", or `yolo26-demo --open` | Start and open the dashboard in the browser |
+| `yolo26-demo` | Start only (restarts automatically if it crashes) |
+| `yolo26-demo --check` | Environment check |
+| `yolo26-demo --setup` | Rebuild the Python environment and download models (e.g. after installing without internet) |
+| `yolo26-demo --export-trt` | TensorRT export |
+| `yolo26-demo --autostart` | Start on boot + fullscreen kiosk (`--autostart --uninstall` to undo) |
+
+`sudo apt remove yolo26-booth-demo` deletes the Python environment (~6 GB) and keeps models, snapshots, leaderboard and config; `sudo apt purge yolo26-booth-demo` deletes everything. Ollama is not part of the package.
+
+### Steps (from source)
 
 ```bash
 git clone https://github.com/rickw00d/Yolo26-booth-demo.git && cd Yolo26-booth-demo

@@ -1,0 +1,17 @@
+Package: yolo26-booth-demo
+Version: __VERSION__
+Section: science
+Priority: optional
+Architecture: arm64
+Maintainer: rickw00d <rickw00d@users.noreply.github.com>
+Installed-Size: __SIZE__
+Depends: python3 (>= 3.10), python3-venv, fonts-noto-cjk, v4l-utils, curl, ca-certificates, xdg-utils
+Homepage: https://github.com/rickw00d/Yolo26-booth-demo
+Description: YOLO26 real-time AI vision booth demo
+ Trade-show demo that runs real-time object detection, segmentation and
+ pose estimation from a USB camera or a live stream, with a full-screen
+ browser dashboard, face blur, an item challenge and on-device AI Q&A
+ through Ollama. Built for NVIDIA GB10 (DGX Spark / MSI EdgeXpert).
+ .
+ Installation downloads PyTorch (CUDA 13), Python packages and the YOLO
+ models, so it needs internet access and takes about 10-20 minutes.

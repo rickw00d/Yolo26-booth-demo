@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# YOLO26 展示程式啟動指令(由 .deb 安裝到 /usr/bin/yolo26-demo)
+set -euo pipefail
+APP="${YOLO26_APP_DIR:-/opt/yolo26-booth-demo}"
+PROFILE="${DEMO_PROFILE:-config.gb10.yaml}"
+URL="${DEMO_URL:-http://localhost:8000}"
+export DEMO_PROFILE="$PROFILE"
+
+usage() {
+  cat <<EOF
+用法:yolo26-demo [選項]
+  (不加選項)      啟動展示程式(當掉會自動重啟,Ctrl+C 停止)
+  --open          啟動並自動用瀏覽器開啟 $URL(選單圖示就是這個)
+  --check         環境檢查:GPU、攝影機、串流、Ollama、模型檔
+  --setup         重新建立 Python 環境並下載模型(安裝中斷或要修復時用)
+  --export-trt    匯出 TensorRT 引擎,加快推論(約數分鐘,只需做一次)
+  --autostart     設定開機自動啟動 + 全螢幕畫面;--autostart --uninstall 取消
+程式位置:$APP,設定檔:$APP/config.yaml、$APP/config.gb10.yaml
+EOF
+}
+
+if [ "$(id -u)" = 0 ]; then
+  echo "請用一般使用者執行(不要加 sudo),否則程式資料夾裡會產生 root 擁有的檔案。" >&2
+  exit 1
+fi
+owner=$(stat -c %U "$APP")
+if [ "$(id -un)" != "$owner" ]; then
+  echo "△ 程式資料夾屬於使用者 $owner,用其他帳號執行可能無法寫入模型與截圖。" >&2
+fi
+if [ ! -x "$APP/.venv/bin/python" ] && [ "${1:-}" != "--setup" ] && [ "${1:-}" != "-h" ] && [ "${1:-}" != "--help" ]; then
+  echo "Python 環境尚未建立(安裝時可能沒有網路)。請先執行:yolo26-demo --setup" >&2
+  exit 1
+fi
+
+wait_and_open() {
+  for _ in $(seq 1 120); do          # 最多等 4 分鐘(GB10 預先載入大模型需要時間)
+    curl -fs "$URL/api/config" >/dev/null 2>&1 && break
+    sleep 2
+  done
+  xdg-open "$URL" >/dev/null 2>&1 || echo "請用瀏覽器開啟 $URL"
+}
+
+case "${1:-}" in
+  "")           exec "$APP/start_demo.sh" ;;
+  --open)
+    if curl -fs "$URL/api/config" >/dev/null 2>&1; then   # 已經在執行:只開瀏覽器
+      wait_and_open
+      exit 0
+    fi
+    wait_and_open &
+    exec "$APP/start_demo.sh" ;;
+  --check)      cd "$APP" && exec .venv/bin/python tools/check_env.py --profile "$PROFILE" ;;
+  --setup)      exec bash "$APP/packaging/setup_env.sh" ;;
+  --export-trt) cd "$APP" && exec .venv/bin/python tools/export_trt.py --profile "$PROFILE" ;;
+  --autostart)  shift; exec "$APP/deploy/install_autostart.sh" "$@" ;;
+  -h|--help)    usage ;;
+  *)            usage >&2; exit 1 ;;
+esac

@@ -1,0 +1,18 @@
+#!/bin/bash
+# 移除前:如果曾用 yolo26-demo --autostart 設定開機自動啟動,先停用,避免移除後服務一直失敗重啟。
+set -e
+APP=/opt/yolo26-booth-demo
+
+[ "$1" = remove ] || exit 0
+owner=$(cat "$APP/.owner" 2>/dev/null || true)
+[ -n "$owner" ] && getent passwd "$owner" >/dev/null || exit 0
+home=$(getent passwd "$owner" | cut -d: -f6)
+uid=$(id -u "$owner")
+unit="$home/.config/systemd/user/yolo-demo.service"
+if [ -f "$unit" ] && grep -q "$APP" "$unit"; then
+  runuser -u "$owner" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+    systemctl --user disable --now yolo-demo.service >/dev/null 2>&1 || true
+  rm -f "$unit" "$home/.config/autostart/yolo-demo-kiosk.desktop"
+  echo "已停用開機自動啟動。"
+fi
+exit 0

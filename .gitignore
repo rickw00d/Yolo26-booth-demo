@@ -23,3 +23,6 @@ mobileclip*.ts
 
 # 匯出的 3D 模型(含產品照片貼圖,不上傳公開倉庫)
 exports/
+
+# .deb 打包輸出
+dist/

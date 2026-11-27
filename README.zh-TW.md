@@ -87,6 +87,7 @@ API:`POST /api/camera/toggle` 等同按 `C`。`POST /api/camera` 內容 `{"index
 | `config.gb10.yaml` | GB10 平台設定(疊加在 config.yaml 上) |
 | `tools/` | 環境檢查、預先下載模型、TensorRT 匯出 |
 | `setup_gb10.sh` / `start_demo.sh` / `deploy/` / `docker/` | Linux 安裝、啟動、開機自動啟動、Docker 備案 |
+| `packaging/` | .deb 打包腳本、安裝腳本與 `yolo26-demo` 指令 |
 | `app/camera.py` | 執行緒化讀取(USB 攝影機、串流或影片檔),斷線自動重連、串流緩衝 |
 | `app/engine.py` | 模型管理、推論、繪圖管線、統計、CPU/GPU 對比 |
 | `app/privacy.py` | 人臉模糊 |
@@ -122,7 +123,27 @@ API:`POST /api/camera/toggle` 等同按 `C`。`POST /api/camera` 內容 `{"index
 
 GB10(DGX Spark、MSI EdgeXpert 等)是 ARM64 架構,作業系統是 DGX OS(Ubuntu)。程式本身跨平台,差異都集中在 [config.gb10.yaml](config.gb10.yaml)(只寫跟 `config.yaml` 不同的欄位,啟動時疊加上去)和安裝腳本。
 
-### 步驟
+### 一鍵安裝(.deb)
+
+```bash
+./packaging/build_deb.sh                                   # 建置 dist/yolo26-booth-demo_1.0.0_arm64.deb(約 50 KB)
+sudo apt install ./dist/yolo26-booth-demo_1.0.0_arm64.deb  # 安裝(需要網路,約 10–20 分鐘)
+```
+
+套件會把程式裝到 `/opt/yolo26-booth-demo`,擁有者是執行安裝的使用者,所以下載模型、截圖和修改設定都不需要 root。安裝過程會建立 Python 環境(PyTorch cu130)、下載 YOLO 模型,若已裝好 Ollama 也會下載 AI 模型。安裝記錄在 `/var/log/yolo26-booth-demo-install.log`。
+
+| 指令 | 用途 |
+|---|---|
+| 應用程式選單「YOLO26 即時 AI 視覺展示」,或 `yolo26-demo --open` | 啟動並用瀏覽器開啟儀表板 |
+| `yolo26-demo` | 只啟動(當掉會自動重啟) |
+| `yolo26-demo --check` | 環境檢查 |
+| `yolo26-demo --setup` | 重新建立 Python 環境並下載模型(例如安裝時沒有網路) |
+| `yolo26-demo --export-trt` | 匯出 TensorRT |
+| `yolo26-demo --autostart` | 開機自動啟動 + 全螢幕(`--autostart --uninstall` 取消) |
+
+`sudo apt remove yolo26-booth-demo` 會刪除 Python 環境(約 6 GB),保留模型、截圖、排行榜與設定檔;`sudo apt purge yolo26-booth-demo` 全部刪除。Ollama 不包含在套件中。
+
+### 步驟(從原始碼安裝)
 
 ```bash
 git clone https://github.com/rickw00d/Yolo26-booth-demo.git && cd Yolo26-booth-demo
